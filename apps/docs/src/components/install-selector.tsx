@@ -131,7 +131,7 @@ export function InstallSelector() {
               ? "Copied"
               : isAgent
                 ? "Copy skill install command"
-                : "Copy npm install command"
+                : "Copy fork clone command"
           }
           aria-describedby={status === "failed" ? errorId : undefined}
           data-copied={status === "copied" || undefined}

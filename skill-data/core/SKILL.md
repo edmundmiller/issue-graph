@@ -5,9 +5,11 @@ description: Status-first routing, bounded evidence collection, and safety guida
 
 # issue-graph core
 
-Use issue-graph to collect GitHub evidence, inspect related work, and prioritize review. Rankings and classifications guide inspection; verify code and behavior before acting.
+Use this fork of issue-graph to collect GitHub evidence or read-only Jira/Linear/Notion inventories and Beads snapshots. Rankings and classifications guide inspection; verify code and behavior before acting.
 
-Run the CLI with Node.js 20 or later. Check `issue-graph auth status` before live queries. GitHub collection uses authenticated `gh`; offline queries, config, and skill loading need no provider credentials. Never request tokens in chat.
+This guide is bundled by edmundmiller/issue-graph. Install from that repository's source-pack instructions, not `issue-graph@latest` or issue-graph.dev (upstream). Check the executable's `schema` for `commands.open.workProviders.providers` before using fork integrations. Run the CLI with Node.js 20 or later; Node.js 24 LTS is recommended for source builds.
+
+Check `issue-graph auth status` before live **GitHub** queries. GitHub collection uses authenticated `gh`; other providers use their own environment credentials and scope-specific help. Offline Beads imports, queries, config, and skill loading need no provider credentials. Never request tokens in chat or print secret values.
 
 ## Load detailed workflows
 

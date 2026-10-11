@@ -405,6 +405,13 @@ try {
   assert.deepEqual(schema.exitCodes, { success: 0, runtimeFailure: 1, usageError: 2 });
   assert.ok(schema.commands.status);
   assert.ok(schema.commands.graph);
+  assert.deepEqual(schema.commands.open.workProviders.providers, [
+    "jira",
+    "linear",
+    "notion",
+    "beads",
+  ]);
+  assert.equal(manifest.repository.url, "git+https://github.com/edmundmiller/issue-graph.git");
   assert.match(invoke([], 2).stderr, /usage: issue-graph/);
   assert.match(invoke(["--not-a-real-option"], 2).stderr, /unknown flag/);
   assert.match(invoke(["status", "--repo", fixtureRepo], 2).stderr, /requires --repo and --author/);
@@ -468,6 +475,51 @@ try {
   assert.ok(
     !existsSync(env.PACKAGE_TEST_GH_LOG as string),
     "help/schema/skills/usage must not invoke gh",
+  );
+
+  for (const scope of ["jira:ENG", "linear:project", "notion:source", "beads:demo"])
+    assert.match(invoke(["open", scope, "--help"]).stdout, /Read-only collection/);
+  const beadsInput = join(consumer, "issues.jsonl");
+  const beadsSource = readFileSync(join(repo, "examples/beads/issues.jsonl"), "utf8");
+  writeFileSync(beadsInput, beadsSource);
+  const beadsEnv = { ISSUE_GRAPH_HOME: join(owned, "beads-home") };
+  const beads = JSON.parse(
+    invoke(["open", "beads:demo", "--input", beadsInput, "--state", "all"], 0, beadsEnv).stdout,
+  );
+  assert.equal(beads.coverage.complete, true);
+  assert.equal(Object.keys(beads.nodes).length, 3);
+  assert.deepEqual(
+    beads.nodes["beads:demo:demo-task"].out.map(
+      (edge: { to: string; via: string; undirected: boolean }) => [
+        edge.to,
+        edge.via,
+        edge.undirected,
+      ],
+    ),
+    [
+      ["beads:demo:demo-prerequisite", "blocks", false],
+      ["beads:demo:demo-epic", "parent-child", false],
+    ],
+  );
+  const beadsQuery = JSON.parse(
+    invoke(["query", "beads:demo", "--view", "explore", "--json", "--no-open"], 0, beadsEnv).stdout,
+  );
+  assert.deepEqual(beadsQuery.items.map((item: { stateLabel: string }) => item.stateLabel).sort(), [
+    "blocked",
+    "in_progress",
+    "open",
+  ]);
+  assert.equal(beadsQuery.capabilities.heat, false);
+  assert.ok(
+    beadsQuery.items.every(
+      (item: { url: string; score: number | null }) => item.url === "" && item.score === null,
+    ),
+  );
+  assert.ok(existsSync(fileURLToPath(new URL(beadsQuery.viewUrl))));
+  assert.equal(readFileSync(beadsInput, "utf8"), beadsSource);
+  assert.ok(
+    !existsSync(env.PACKAGE_TEST_GH_LOG as string),
+    "Beads import/query must not invoke gh",
   );
 
   const dlx = (args: string[], expected = 0) =>
@@ -575,7 +627,7 @@ try {
   const calls = readFileSync(env.PACKAGE_TEST_GH_LOG as string, "utf8")
     .trim()
     .split("\n");
-  const expectedChecks = suppliedTarball ? 44 : 45;
+  const expectedChecks = suppliedTarball ? 50 : 51;
   assert.equal(
     checks,
     expectedChecks,

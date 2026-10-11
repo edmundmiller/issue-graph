@@ -72,11 +72,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel-labs/issue-graph.git"
+    "url": "git+https://github.com/edmundmiller/issue-graph.git"
   },
-  "homepage": "https://issue-graph.dev",
+  "homepage": "https://github.com/edmundmiller/issue-graph#readme",
   "bugs": {
-    "url": "https://github.com/vercel-labs/issue-graph/issues"
+    "url": "https://github.com/edmundmiller/issue-graph/issues"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.3",

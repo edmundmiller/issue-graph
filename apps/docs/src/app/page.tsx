@@ -131,11 +131,14 @@ export default function Home() {
           <h2 id="install-title">Get started</h2>
         </div>
         <div className="ig-install-details">
-          <span className="ig-release-label">Requires Node.js 20+</span>
+          <span className="ig-release-label">Fork source build · Node.js 24 recommended</span>
           <CodeBlock title="Terminal">
             <code>{renderTerminalCommand(plannedInstallCommand)}</code>
           </CodeBlock>
-          <p>Sign in with GitHub CLI, then run issue-graph against a repository you can access.</p>
+          <p>
+            Follow the guide to pack and install this fork, then try its credentials-free Beads
+            example. GitHub alone needs GitHub CLI sign-in.
+          </p>
           <Link className="ig-text-link" href="/docs/get-started">
             Read the installation guide <span aria-hidden="true">↗</span>
           </Link>

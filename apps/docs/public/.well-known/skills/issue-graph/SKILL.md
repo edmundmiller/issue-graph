@@ -5,7 +5,16 @@ description: Read-only context for issues, pull requests, and backlogs. Use to t
 
 # issue-graph
 
-Before running operational commands, load and read the guidance bundled with the CLI:
+This skill belongs to **edmundmiller/issue-graph**. Install the fork from its
+README's source-pack instructions when setup is authorized. `issue-graph@latest`
+and issue-graph.dev select upstream and do not install this fork. Prefer the
+dedicated `$HOME/.local/issue-graph-fork/bin/issue-graph` executable if multiple
+installations exist.
+
+Before running operational commands, run `issue-graph schema` and check that
+`commands.open.workProviders.providers` includes jira, linear, notion, beads.
+If it does not, stop and report that the executable is not this fork. Then load
+and read the guidance bundled with that CLI:
 
 ```bash
 issue-graph skills get core

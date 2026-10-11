@@ -7,7 +7,7 @@ export function documentationPages() {
 }
 
 export function releaseNotice(): string {
-  return "Install with npm install -g issue-graph@latest, or try npx issue-graph@latest --help. Requires Node.js 20+. Live GitHub queries use GitHub CLI authentication; saved queries and config work offline.";
+  return "Install this fork from https://github.com/edmundmiller/issue-graph#start-here: clone, install locked dependencies with pnpm, pack, and install the local tarball. Node.js 24 LTS is recommended for builds. issue-graph@latest and issue-graph.dev select upstream, not this fork. Check schema for Jira, Linear, Notion, Beads and load skills get core --full. Beads JSONL and saved queries work offline; live providers require their own authorized credentials.";
 }
 
 export function llmsIndex(): string {

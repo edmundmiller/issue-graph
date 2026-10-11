@@ -6,18 +6,19 @@ Contributions use Apache-2.0 unless stated otherwise.
 
 ## Setup
 
-To use the published CLI, run `npx issue-graph@latest --help` or `npm install --global issue-graph@latest`. For library use, run `npm install issue-graph@latest`. The package requires Node.js 20+. These docs track `main`; check installed help for available commands.
+For **this fork**, follow README.md's source-pack installation from `https://github.com/edmundmiller/issue-graph`. `issue-graph@latest` on npm is upstream, not a way to install the fork's providers. Check the installed `schema` exposes Jira, Linear, Notion, and Beads.
 
 Use pnpm and Node.js 20.19.x or 22.12+ for source development; Node.js 24 is recommended. The compiled CLI still targets Node.js 20 or later. Authenticate the GitHub CLI for live API checks.
 
 ```bash
-gh auth login
-gh repo clone vercel-labs/issue-graph
+git clone https://github.com/edmundmiller/issue-graph.git
 cd issue-graph
 pnpm install --frozen-lockfile
 ```
 
 ## Verify changes
+
+Only GitHub live checks need `gh auth login`; offline Beads and installed-package fixture checks require no provider credentials.
 
 ```bash
 pnpm check

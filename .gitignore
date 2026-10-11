@@ -9,6 +9,8 @@ dist
 *.tsbuildinfo
 apps/docs/test-results/
 .env*
+.fork-pack/
+.fork-demo/
 
 apps/dashboard/out/
 apps/dashboard/next-env.d.ts

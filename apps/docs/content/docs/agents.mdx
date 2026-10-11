@@ -5,34 +5,27 @@ description: Install the issue-graph agent skill so coding agents can trace issu
 lastModified: 2026-09-27
 ---
 
+For this fork, install the CLI from [edmundmiller/issue-graph's README](https://github.com/edmundmiller/issue-graph#start-here), not the upstream npm package. Agents can read that repository's `AGENTS.md` and the installed `skills get core --full` without a separate skill installer. Check `schema` exposes Jira, Linear, Notion, and Beads under `commands.open.workProviders.providers`; stop if you accidentally selected upstream.
+
 ## Install the agent skill
 
 ```bash
-npx skills@latest add vercel-labs/issue-graph
+npx skills@latest add edmundmiller/issue-graph
 ```
 
 Choose your agent and installation scope. To list the skill before installing it:
 
 ```bash
-npx skills@latest add vercel-labs/issue-graph --list
+npx skills@latest add edmundmiller/issue-graph --list
 ```
 
-You can also install the same skill from the public site:
-
-```bash
-npx skills@latest add https://issue-graph.dev
-```
-
-The GitHub skill, public site's well-known index, and [`/skill.md`](/skill.md) serve the same canonical skill. It loads instructions from your installed CLI so the guidance matches your release.
+The public issue-graph.dev site is upstream, not a fallback for this fork. The fork's GitHub skill loads instructions from the installed fork CLI so the guidance matches the executable.
 
 ## Install the CLI separately
 
-```bash
-npm install --global issue-graph@latest
-issue-graph --help
-```
+Use the README's clone → locked install → pack → dedicated-prefix install commands, then run `issue-graph --help`. `npm install --global issue-graph@latest` installs upstream rather than this fork.
 
-The skill provides agent instructions. The CLI uses your GitHub CLI login for live collection. Saved queries, config, and skill retrieval work offline. See [Get started](/docs/get-started) to set up authentication.
+The skill provides agent instructions. GitHub collection uses your GitHub CLI login; Jira/Linear/Notion use their own environment credentials and scope-specific `open --help`. Beads JSONL imports, saved queries, config, and skill retrieval work offline. See [Get started](/docs/get-started) and the fork README for setup and the credentials-free fixture.
 
 ## Load the command guidance
 

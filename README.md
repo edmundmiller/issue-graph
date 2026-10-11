@@ -2,13 +2,12 @@
 
 <p>
   <a href="https://vercel.com/labs#active-experiments"><img alt="Vercel Labs Experiment" src="https://img.shields.io/badge/LABS-EXPERIMENT-0a0a0a.svg?style=for-the-badge&amp;logo=Vercel&amp;labelColor=000000" height="28"></a>
-  <a href="https://www.npmjs.com/package/issue-graph"><img alt="npm version: issue-graph" src="https://img.shields.io/npm/v/issue-graph.svg?style=for-the-badge&amp;labelColor=000000" height="28"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=for-the-badge&amp;labelColor=000000" height="28"></a>
 </p>
 
 Find related issues, competing changes, and unresolved follow-ups before you start work.
 
-`issue-graph` traces linked GitHub issues and pull requests. Use it to find existing fixes, check PR status by author, and choose what to review next.
+This is **[edmundmiller/issue-graph](https://github.com/edmundmiller/issue-graph)**, a fork of Vercel Labs' issue-graph. It traces GitHub issues/PRs and adds read-only Jira, Linear, Notion, and optional Beads JSONL inventories. **The npm package `issue-graph@latest` and issue-graph.dev are upstream, not this fork.**
 
 ![issue-graph demo: related fixes and follow-ups, superseded PRs to review, and a per-author PR status ledger](https://issue-graph.dev/issue-graph-workflows.gif)
 
@@ -16,22 +15,35 @@ Illustrated workflows: Graph → Reconcile → PR status. [Static version](https
 
 ## Start here
 
-Install the [npm package](https://www.npmjs.com/package/issue-graph) with [Node.js](https://nodejs.org) 20 or later. GitHub queries use your [GitHub CLI](https://cli.github.com) login.
-
-Try the CLI without a global installation:
+Use Git, npm, and **Node.js 24 LTS** for the source build (20.19+ or 22.12+ also supported). The runtime needs Node 20+. On macOS/Linux, build and install **this fork** into a dedicated prefix; no sudo or registry publication is needed. Run these commands in a new directory:
 
 ```bash
-npx issue-graph@latest --help
-```
-
-For the installed command used below:
-
-```bash
-npm install --global issue-graph@latest
+git clone https://github.com/edmundmiller/issue-graph.git issue-graph-fork
+cd issue-graph-fork
+npm exec --yes --package=pnpm@10.34.5 -- pnpm install --frozen-lockfile
+npm exec --yes --package=pnpm@10.34.5 -- pnpm pack --pack-destination .fork-pack
+npm install --global --prefix "$HOME/.local/issue-graph-fork" ./.fork-pack/issue-graph-0.5.0.tgz
+export PATH="$HOME/.local/issue-graph-fork/bin:$PATH"
+hash -r
 issue-graph --help
-gh auth login
-gh auth status
+issue-graph schema
+issue-graph skills get core --full
 ```
+
+`pack` builds the CLI and static dashboard. Verify that `schema` lists `commands.open.workProviders.providers` as `jira`, `linear`, `notion`, `beads`. Use `command -v issue-graph` to check that you are running the dedicated prefix, not an older upstream executable. In later shells repeat the `export PATH` line, or use `$HOME/.local/issue-graph-fork/bin/issue-graph` explicitly. Keep the checkout to update it; the installed CLI works outside it. On Windows, use `node dist/bin.js` from the built checkout rather than these POSIX PATH instructions.
+
+### Credentials-free first result
+
+From the cloned checkout, import the included three-issue fixture:
+
+```bash
+ISSUE_GRAPH_HOME="$PWD/.fork-demo" issue-graph open beads:demo --input examples/beads/issues.jsonl --state all
+ISSUE_GRAPH_HOME="$PWD/.fork-demo" issue-graph query beads:demo --view explore --json --no-open
+```
+
+Expect three native string IDs (`demo-task`, `demo-prerequisite`, `demo-epic`), `blocked`/`in_progress`/`open` statuses, and two directed dependencies. Coverage is complete **for these fixture records**, not a freshness or readiness guarantee. The query writes a local HTML dashboard and returns its exact `viewUrl`; use `--open` instead of `--no-open` on a machine with a browser opener. No provider credentials, `gh`, `br`, or `bd` are needed. For your own project, change the scope and pass its tracked `.beads/issues.jsonl` path; the input is never modified.
+
+See [provider setup and limits](#work-providers-in-this-fork) for live inventories. GitHub queries separately require [GitHub CLI](https://cli.github.com) and `gh auth login`; Jira/Linear/Notion do not use `gh` authentication.
 
 Trace public [agent-browser issue #1113](https://github.com/vercel-labs/agent-browser/issues/1113) without saving a snapshot:
 
@@ -39,19 +51,22 @@ Trace public [agent-browser issue #1113](https://github.com/vercel-labs/agent-br
 issue-graph graph vercel-labs/agent-browser#1113 --depth 1 --budget 12 --no-save
 ```
 
-To use npx instead, replace `issue-graph` with `npx issue-graph@latest`. At the 2026-09-22 capture, issue #1113 was closed, [PR #1137](https://github.com/vercel-labs/agent-browser/pull/1137) was merged, [regression #1148](https://github.com/vercel-labs/agent-browser/issues/1148) was closed, and follow-ups [#1371](https://github.com/vercel-labs/agent-browser/issues/1371) and [#1607](https://github.com/vercel-labs/agent-browser/issues/1607) were open. Check the open follow-ups before assuming the fix covers them.
+At the 2026-09-22 capture, issue #1113 was closed, [PR #1137](https://github.com/vercel-labs/agent-browser/pull/1137) was merged, [regression #1148](https://github.com/vercel-labs/agent-browser/issues/1148) was closed, and follow-ups [#1371](https://github.com/vercel-labs/agent-browser/issues/1371) and [#1607](https://github.com/vercel-labs/agent-browser/issues/1607) were open. Check the open follow-ups before assuming the fix covers them.
 
 Check missing references and crawl limits in the report. Each run queries GitHub, so results can change. [Capture details](https://issue-graph.dev/docs/graph).
 
-### Update an npm installation
+### Update the fork installation
 
 ```bash
-npm install --global issue-graph@latest
+git pull --ff-only
+npm exec --yes --package=pnpm@10.34.5 -- pnpm install --frozen-lockfile
+npm exec --yes --package=pnpm@10.34.5 -- pnpm pack --pack-destination .fork-pack
+npm install --global --prefix "$HOME/.local/issue-graph-fork" ./.fork-pack/issue-graph-0.5.0.tgz
 ```
 
 Use `issue-graph --help` to check the commands supported by your installed release.
 
-This README follows repository `main`, which can be ahead of the published package. If a documented command is missing, use a release that includes it or follow the source setup below.
+Run updates from your fork checkout. For reproducible installs, check out a reviewed commit before packing. If the package version changes, use the new tarball filename printed by `pack`. Do not update this fork with `npm install issue-graph@latest`.
 
 ## Choose a workflow
 
@@ -165,13 +180,13 @@ Its useful niche is lightweight Slack-native follow-up tracking. However, list c
 
 ## Agents and integrations
 
-Install the CLI with `npm install --global issue-graph@latest`, then install the agent skill separately:
+Install the fork CLI using [Start here](#start-here). Agents can read [AGENTS.md](AGENTS.md) directly and load bundled guidance through the installed CLI; a separate skill installer is optional:
 
 ```bash
-npx skills@latest add vercel-labs/issue-graph
+npx skills@latest add edmundmiller/issue-graph
 ```
 
-Choose your agent and project scope, preserving any local skill changes. If you cannot access the repository, use `npx skills@latest add https://issue-graph.dev`. The public site, `/skill.md`, and [repository skill](skills/issue-graph/SKILL.md) serve the same canonical skill. CLI installation and GitHub authentication are separate setup steps.
+Choose your agent and project scope, preserving any local skill changes. Do not use the upstream repository or issue-graph.dev as a fallback for this fork. The [repository skill](skills/issue-graph/SKILL.md) checks the installed fork's schema and loads its bundled guide. Skill installation does not install the CLI or authenticate providers.
 
 Before operational commands, load and read the guidance bundled with the installed CLI:
 
@@ -184,11 +199,11 @@ Use `--full` for workflow references, `issue-graph skills list` for available gu
 
 Use `issue-graph cluster owner/repo` to print a root-cause clustering task for the calling agent, then `issue-graph cluster owner/repo --apply answer.json` (or `-` for stdin) to load its answer. For cron or CI, `--agent claude` or `--agent codex` sends it to an installed headless agent. Review the payload and the agent's permissions and data policy before using private repository evidence; the CLI does not sandbox that process.
 
-Install the published library with `npm install issue-graph@latest`. It separates the runtime-agnostic core (`issue-graph`) from shell (`issue-graph/transport/shell`, using `gh`) and HTTP (`issue-graph/transport/http`, using `fetch` plus a token) transports. See [Library](apps/docs/content/docs/library.mdx) for ESM imports and server-side credential handling.
+To consume the fork library, install the locally built `.fork-pack/issue-graph-0.5.0.tgz` in your application with `npm install /absolute/path/to/the/tarball`; `npm install issue-graph@latest` selects upstream. It separates the runtime-agnostic core (`issue-graph`, including `collectProvider` and `beadsModel`) from shell (`issue-graph/transport/shell`, using `gh`) and HTTP (`issue-graph/transport/http`, using `fetch` plus a token) transports. See [Library](apps/docs/content/docs/library.mdx) for ESM imports and server-side credential handling.
 
 ## Documentation
 
-Read the documentation at [issue-graph.dev/docs](https://issue-graph.dev/docs), or browse its source in this checkout:
+Browse documentation source in this checkout for fork changes. [issue-graph.dev/docs](https://issue-graph.dev/docs) is the upstream website and may not describe this fork:
 
 - [Get started](apps/docs/content/docs/get-started.mdx): installation, authentication, and a first result
 - [Graph](apps/docs/content/docs/graph.mdx): depth, caps, snapshots, and HTML

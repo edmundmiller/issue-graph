@@ -48,7 +48,11 @@ export function assertPackageIdentity(actual: PackageIdentity, expected: Package
   assert.equal(actual.version, expected.version, "archive package version mismatch");
 }
 
-export function verifyArchive(path: string, expected: PackageIdentity, digest: string): void {
+export function verifyArchive(
+  path: string,
+  expected: PackageIdentity & { repository?: { url: string } },
+  digest: string,
+): void {
   assertChecksum(path, digest);
   const entries = execFileSync("tar", ["-tzf", path], { encoding: "utf8" }).trim().split("\n");
   assert.equal(entries.filter((entry) => entry === "package/package.json").length, 1);
@@ -61,7 +65,11 @@ export function verifyArchive(path: string, expected: PackageIdentity, digest: s
   assert.equal(manifest.publishConfig?.registry, undefined, "registry must come from the workflow");
   assert.equal(manifest.publishConfig?.tag, undefined, "dist-tag must come from the workflow");
   assert.equal(manifest.publishConfig?.provenance, undefined, "provenance must remain automatic");
-  assert.equal(manifest.repository?.url, "git+https://github.com/vercel-labs/issue-graph.git");
+  assert.equal(
+    manifest.repository?.url,
+    expected.repository?.url ?? "git+https://github.com/vercel-labs/issue-graph.git",
+    "archive repository mismatch",
+  );
   assertChecksum(path, digest);
 }
 

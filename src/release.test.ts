@@ -625,6 +625,13 @@ describe("read-only published archive verification", () => {
 });
 
 describe("supplied package archive", () => {
+  test("verifies a fork archive against its source repository without relaxing release identity", () => {
+    const repository = { url: "git+https://github.com/edmundmiller/issue-graph.git" };
+    const tarball = archive({ repository });
+    verifyArchive(tarball, { ...identity, repository }, sha256(tarball));
+    expect(() => verifyArchive(tarball, identity, sha256(tarball))).toThrow("repository mismatch");
+  });
+
   test("uses the supplied archive without ever calling pack or changing its bytes", () => {
     const tarball = archive();
     const before = readFileSync(tarball);

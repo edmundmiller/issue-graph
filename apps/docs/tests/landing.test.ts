@@ -66,20 +66,20 @@ describe("launch feedback", () => {
     expect(read("../src/app/page.tsx")).toContain("@vercel/geistdocs/components/code-block");
   });
 
-  test("starts with the npm command and accessible audience buttons", () => {
+  test("starts with the fork clone command and accessible audience buttons", () => {
     const html = renderToStaticMarkup(createElement(InstallSelector));
     expect(html).toContain('aria-label="Installation audience"');
     expect(html).toContain('aria-pressed="true">For humans');
     expect(html).toContain('aria-pressed="false">For agents');
     expect(html).toContain(plannedInstallCommand);
-    expect(html).toContain('aria-label="Copy npm install command"');
+    expect(html).toContain('aria-label="Copy fork clone command"');
     expect(html).toContain('class="ig-selector-pill"');
     expect(html).toContain('class="ig-selector-divider"');
-    expect(plannedInstallCommand).toBe("npm install -g issue-graph@latest");
+    expect(plannedInstallCommand).toBe("git clone https://github.com/edmundmiller/issue-graph.git");
   });
 
   test("agent setup uses the repository shorthand and retains public discovery", () => {
-    expect(agentSetupPrompt).toBe("npx skills@latest add vercel-labs/issue-graph");
+    expect(agentSetupPrompt).toBe("npx skills@latest add edmundmiller/issue-graph");
     const index = JSON.parse(read("../public/.well-known/skills/index.json"));
     expect(index.skills[0]).toMatchObject({ name: "issue-graph", files: ["SKILL.md"] });
     expect(agentSetupPrompt.length).toBeLessThan(60);

@@ -12,7 +12,7 @@ export const config = defineConfig({
   navbarActiveProduct: siteName,
   navbarGithub: { enabled: true },
   github: {
-    owner: "vercel-labs",
+    owner: "edmundmiller",
     repo: "issue-graph",
     branch: "main",
     editPath: "apps/docs/content/docs",
@@ -20,7 +20,11 @@ export const config = defineConfig({
   content: [{ id: "docs", label: "Documentation", dir: "content/docs", route: "/docs" }],
   nav: [
     { label: "Docs", href: "/docs" },
-    { label: "npm", href: "https://www.npmjs.com/package/issue-graph", external: true },
+    {
+      label: "Fork setup",
+      href: "https://github.com/edmundmiller/issue-graph#start-here",
+      external: true,
+    },
   ],
   ai: { enabled: false },
   feedback: { enabled: false },

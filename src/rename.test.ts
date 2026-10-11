@@ -35,9 +35,9 @@ describe("issue-graph identity", () => {
     expect(pkg.private).not.toBe(true);
     expect(pkg.publishConfig.access).toBe("public");
     expect(pkg.bin).toEqual({ "issue-graph": "./dist/bin.js" });
-    expect(pkg.repository.url).toBe("git+https://github.com/vercel-labs/issue-graph.git");
-    expect(pkg.homepage).toBe("https://issue-graph.dev");
-    expect(pkg.bugs.url).toBe("https://github.com/vercel-labs/issue-graph/issues");
+    expect(pkg.repository.url).toBe("git+https://github.com/edmundmiller/issue-graph.git");
+    expect(pkg.homepage).toBe("https://github.com/edmundmiller/issue-graph#readme");
+    expect(pkg.bugs.url).toBe("https://github.com/edmundmiller/issue-graph/issues");
   });
 
   test("help and schema use the canonical command and machine identity", () => {

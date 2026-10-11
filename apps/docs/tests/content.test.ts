@@ -155,17 +155,18 @@ describe("documentation content contract", () => {
     expect(still.readUInt32BE(20)).toBe(1560);
   });
 
-  test("root guidance documents published installation and automatic releases", async () => {
+  test("root guidance selects the fork source package and retains upstream release documentation", async () => {
     const [readme, contributing] = await Promise.all([
       read("../../README.md"),
       read("../../CONTRIBUTING.md"),
     ]);
-    for (const page of [readme, contributing]) {
-      expect(page).toContain("npm install --global issue-graph@latest");
-      expect(page).toContain("npm install issue-graph@latest");
-      expect(page).toContain("npx issue-graph@latest --help");
-      expect(page).not.toMatch(/publication is (?:still )?pending|pending publication/i);
-    }
+    expect(readme).toContain("git clone https://github.com/edmundmiller/issue-graph.git");
+    expect(readme).toContain("pnpm install --frozen-lockfile");
+    expect(readme).toContain("pnpm pack --pack-destination .fork-pack");
+    expect(readme).toContain('npm install --global --prefix "$HOME/.local/issue-graph-fork"');
+    expect(readme).toContain("commands.open.workProviders.providers");
+    expect(readme).toContain("examples/beads/issues.jsonl");
+    expect(readme).not.toContain("npx issue-graph@latest --help");
     expect(contributing).not.toMatch(/expected_version=\d+\.\d+\.\d+/);
     expect(contributing).toContain('expected_version="$EXPECTED_VERSION"');
     expect(contributing).toContain("starts `.github/workflows/release.yml` automatically");
@@ -188,14 +189,11 @@ describe("documentation content contract", () => {
     const readmeAgents = readme.match(/^## Agents and integrations\n([\s\S]*?)(?=^## )/m)?.[1];
     expect(readmeAgents).toBeDefined();
     for (const page of [agents, readmeAgents ?? ""]) {
-      expect(page).not.toMatch(/\b\d+\.\d+\.\d+(?:-[\w.-]+)?\b/);
       expect(page).not.toMatch(/outdated|source-only|newer source stub|not available in npm/i);
       expect(page).not.toMatch(/do not (?:install|pair).*stub|npm root --global|cp -R/i);
-      expect(page).toContain("npm install --global issue-graph@latest");
-      expect(page).toContain("npx skills@latest add vercel-labs/issue-graph");
-      expect(page).toContain("npx skills@latest add https://issue-graph.dev");
-      expect(page).toContain("same canonical");
-      expect(page).toContain("/skill.md");
+      expect(page).toContain("npx skills@latest add edmundmiller/issue-graph");
+      expect(page).not.toContain("npx skills@latest add vercel-labs/issue-graph");
+      expect(page).not.toContain("npx skills@latest add https://issue-graph.dev");
       expect(page).toContain("issue-graph skills get core\n");
       expect(page).toContain("issue-graph skills get core --full\n");
       expect(page).toContain("issue-graph skills list");
@@ -217,7 +215,7 @@ describe("documentation content contract", () => {
       read("src/lib/site.ts"),
     ]);
     expect(config).toContain("navbarGithub: { enabled: true }");
-    expect(config).toContain('owner: "vercel-labs"');
+    expect(config).toContain('owner: "edmundmiller"');
     expect(config).toContain('repo: "issue-graph"');
     expect(config).not.toContain("...(repositoryIsPublic");
     expect(config).toContain("editSource: repositoryIsPublic");

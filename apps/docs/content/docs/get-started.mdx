@@ -1,17 +1,23 @@
 ---
 title: Install the CLI and trace your first issue
 navTitle: Get started
-description: Install issue-graph from npm, sign in with GitHub CLI, trace your first issue, and save the result as JSON or an HTML explorer.
+description: Install the edmundmiller fork from source, try a credentials-free Beads snapshot, configure live providers, and query a saved graph.
 lastModified: 2026-09-27
 ---
+
+## Install this fork
+
+For **edmundmiller/issue-graph**, follow [the fork README's Start here](https://github.com/edmundmiller/issue-graph#start-here): clone that repository, build with pinned pnpm, pack it, and install the resulting tarball into a dedicated user prefix. Node.js 24 LTS is recommended. Do not use the npm installation below for Jira, Linear, Notion, or Beads: `issue-graph@latest` is upstream.
+
+Verify `issue-graph schema` lists `commands.open.workProviders.providers` with all four providers, then read `issue-graph skills get core --full`. The README includes a credentials-free Beads example and exact environment/scope configuration for live providers. GitHub alone requires `gh`. Importing tracked Beads JSONL requires neither credentials nor br/bd; native unclosed statuses do not imply readiness, and exports can lag database-backed changes.
 
 ## Prerequisites
 
 - Node.js 20 or later
-- [GitHub CLI](https://cli.github.com) on your `PATH`
-- read access to the repositories you want to query
+- [GitHub CLI](https://cli.github.com) on your `PATH` for GitHub collection only
+- authorized scope/credentials for the live provider you want to query; none for Beads JSONL
 
-## Install from npm
+## Install upstream from npm (not this fork)
 
 ```bash
 npm install --global issue-graph@latest
@@ -99,7 +105,7 @@ If the command is missing, check your npm global installation and `PATH`, or use
 Build from source using pnpm and Node.js 20.19.x or 22.12+. Node.js 24 is recommended.
 
 ```bash
-gh repo clone vercel-labs/issue-graph
+git clone https://github.com/edmundmiller/issue-graph.git
 cd issue-graph
 pnpm install --frozen-lockfile
 pnpm build

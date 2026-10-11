@@ -17,7 +17,7 @@ describe("install selector", () => {
     expect(html).toContain('aria-pressed="true">For humans');
     expect(html).toContain('aria-pressed="false">For agents');
     expect(html).toContain(`<code>${plannedInstallCommand}</code>`);
-    expect(html).toContain('aria-label="Copy npm install command"');
+    expect(html).toContain('aria-label="Copy fork clone command"');
     expect(html).toContain('class="ig-selector-divider" aria-hidden="true"');
   });
 
