@@ -28,6 +28,7 @@ import { writeNextDashboard } from "./next-dashboard.js";
 import { fileOverlaps } from "./overlaps.js";
 import { buildPlanReport, renderPlan } from "./plan.js";
 import { prioritize, renderPriority } from "./priority.js";
+import { isProviderOpen, runProviderOpen } from "./provider-cli.js";
 import { runQueryCli } from "./query-cli.js";
 import { buildReconcileReport, renderReconcile } from "./reconcile.js";
 import { parseSeed } from "./refs.js";
@@ -83,6 +84,11 @@ commands
 scope
   (none)                   the GitHub repository of the current directory
   owner/repo               a repository; github:owner/repo names the provider
+  jira:PROJECT             Jira Cloud project (JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN)
+  linear:PROJECT_UUID      Linear project (LINEAR_API_KEY or LINEAR_ACCESS_TOKEN)
+  notion:DATA_SOURCE_UUID  Notion tasks (NOTION_API_TOKEN)
+  beads:PROJECT            tracked .beads/issues.jsonl snapshot
+                           These scopes support open; use open <scope> --help.
   123  #123  owner/repo#123  <issue or PR URL>   one or more items
 
 options
@@ -414,6 +420,7 @@ async function writeOutput(file: string, content: string): Promise<void> {
 
 export async function runCli(argv = process.argv.slice(2)): Promise<void> {
   if (["query", "config"].includes(argv[0])) return runQueryCli(argv, openInBrowser);
+  if (isProviderOpen(argv)) return runProviderOpen(argv.slice(1));
   if (!argv.length) {
     // a person inside a GitHub repository gets its dashboard; scripts and CI keep the usage
     if (interactive() && inferRepo()) argv = ["open"];
@@ -922,6 +929,11 @@ function runRuns(a: Args): void {
   const [sub = "list", target] = a.rest;
   if (sub === "rm") {
     if (!target) throw new UsageError("runs rm needs a repository: issue-graph runs rm owner/repo");
+    if (/^(jira|linear|notion|beads):/.test(target)) {
+      if (!removeDashboardRun(target)) throw new UsageError(`no saved run for ${target}`);
+      process.stdout.write(`removed ${target}\n`);
+      return;
+    }
     const repo = parseScope(target);
     if (repo.kind !== "repo") throw new UsageError("runs rm takes a repository");
     if (!removeDashboardRun(repo.repo)) throw new UsageError(`no saved run for ${repo.repo}`);
