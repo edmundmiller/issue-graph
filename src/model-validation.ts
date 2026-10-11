@@ -85,11 +85,19 @@ export function parseModel(value: unknown): Model {
     )
       throw new Error(`invalid captured item: ${key}`);
     if (
-      [n.identifier, n.stateLabel, n.stateType, n.author, n.verdict, n.read?.error].some(
-        (v) => v !== undefined && typeof v !== "string",
-      )
+      [
+        n.identifier,
+        n.stateLabel,
+        n.stateType,
+        n.issueType,
+        n.author,
+        n.verdict,
+        n.read?.error,
+      ].some((v) => v !== undefined && typeof v !== "string")
     )
       throw new Error(`invalid captured text: ${key}`);
+    if (n.priority !== undefined && (!Number.isSafeInteger(n.priority) || n.priority < 0))
+      throw new Error(`invalid native priority: ${key}`);
     if (
       n.pr &&
       (![n.pr.review, n.pr.mergeable, n.pr.updated].every((v) => typeof v === "string") ||

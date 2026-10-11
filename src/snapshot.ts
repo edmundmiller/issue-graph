@@ -183,11 +183,17 @@ export function dashboardDir(): string {
   return path.join(stateHome(), "dashboard");
 }
 
+function dashboardFile(scope: string): string {
+  // Keep legacy GitHub filenames; qualified identities must not collide at ':' or '/'.
+  const name = scope.includes(":") ? encodeURIComponent(scope) : scope.replace(/[^\w.-]/g, "_");
+  return path.join(dashboardDir(), `${name}.json`);
+}
+
 /** Save one run's explorer model, replacing the previous one for that repository. */
 export function writeDashboardModel(repo: string, model: unknown): string {
   const dir = dashboardDir();
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const file = path.join(dir, `${repo.replace(/[^\w.-]/g, "_")}.json`);
+  const file = dashboardFile(repo);
   fs.writeFileSync(file, JSON.stringify(model), { mode: 0o600 });
   return file;
 }
@@ -225,10 +231,14 @@ export function listDashboardRuns(): Array<{
     .flatMap((f) => {
       const file = path.join(dir, f);
       try {
-        const m = JSON.parse(fs.readFileSync(file, "utf8")) as { repo?: string; nodes?: object };
+        const m = JSON.parse(fs.readFileSync(file, "utf8")) as {
+          id?: string;
+          repo?: string;
+          nodes?: object;
+        };
         return [
           {
-            repo: m.repo ?? f.replace(/\.json$/, ""),
+            repo: m.id ?? m.repo ?? f.replace(/\.json$/, ""),
             nodes: Object.keys(m.nodes ?? {}).length,
             savedAt: fs.statSync(file).mtime.toISOString(),
             file,
@@ -243,7 +253,7 @@ export function listDashboardRuns(): Array<{
 
 /** Delete one repository's saved run; false when there was none. */
 export function removeDashboardRun(repo: string): boolean {
-  const file = path.join(dashboardDir(), `${repo.replace(/[^\w.-]/g, "_")}.json`);
+  const file = dashboardFile(repo);
   if (!fs.existsSync(file)) return false;
   fs.rmSync(file);
   return true;
@@ -251,7 +261,7 @@ export function removeDashboardRun(repo: string): boolean {
 
 /** One repository's saved run, or undefined when there is none or it cannot be read. */
 export function readDashboardModel<T>(repo: string): T | undefined {
-  const file = path.join(dashboardDir(), `${repo.replace(/[^\w.-]/g, "_")}.json`);
+  const file = dashboardFile(repo);
   try {
     return JSON.parse(fs.readFileSync(file, "utf8")) as T;
   } catch {

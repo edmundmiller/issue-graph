@@ -875,31 +875,25 @@ export function mountDashboardView(
       };
   }
   function projectRow() {
-    if (PROJECTS.length > 1)
-      return (
-        '<div class="project-row">' +
-        projectMenu() +
-        '<a class="project-gh" href="' +
-        esc(DATA.url || repoUrl(DATA.repo)) +
+    const url = DATA.url || repoUrl(DATA.repo);
+    const link = url
+      ? '<a class="project-gh" href="' +
+        esc(url) +
         '" target="_blank" rel="noopener" aria-label="Open on ' +
         esc(PV.name) +
         '" title="Open on ' +
         esc(PV.name) +
-        '">↗</a></div>'
-      );
+        '">↗</a>'
+      : "";
+    if (PROJECTS.length > 1) return '<div class="project-row">' + projectMenu() + link + "</div>";
     return (
       '<div class="project-row"><span class="project">' +
       PV.logo +
       '<span class="pname">' +
       esc(projectLabel(DATA)) +
       "</span></span>" +
-      '<a class="project-gh" href="' +
-      esc(DATA.url || repoUrl(DATA.repo)) +
-      '" target="_blank" rel="noopener" aria-label="Open on ' +
-      esc(PV.name) +
-      '" title="Open on ' +
-      esc(PV.name) +
-      '">↗</a></div>'
+      link +
+      "</div>"
     );
   }
   function snapshotDetails() {

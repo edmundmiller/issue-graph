@@ -100,8 +100,12 @@ export interface Model {
 export interface ClientNode {
   repo: string;
   key: NodeKey;
-  num: number;
+  /** GitHub number; absent for providers with string identifiers. */
+  num?: number;
   identifier?: string;
+  /** Native task priority, not discussion Heat or a readiness verdict. */
+  priority?: number;
+  issueType?: string;
   kind: "PullRequest" | "Issue" | "Unknown";
   state: string;
   stateLabel?: string;
