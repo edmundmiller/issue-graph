@@ -104,7 +104,7 @@ issue-graph query --history HISTORY_ID --open
 
 Query prints JSON in a pipe. In a terminal it shows a short summary and requests opening the exact view; `--no-open` suppresses that request. Results include captured items, scores, capabilities, coverage, a capture ID, a history ID and `viewUrl`. Return `viewUrl` unchanged, including the query string and hash. The Next.js page embeds the capture and effective weights; its compiled assets are stored beside it, so an old link stays stable when defaults or saved runs change. Replace `HISTORY_ID` with the returned `historyId` to replay frozen parameters. `--capture` queries the same data with current defaults and newly supplied filters, without inheriting earlier filters.
 
-Scopes are provider-qualified: `github:owner/repo` or `linear:workspace:project:project-id`. Other providers can supply the same normalized dashboard model through `--input model.json`; graph JSON from `-o graph.json` is a different format. This command does not collect live Linear or Jira data. Unsupported provider filters fail explicitly. Cluster indices belong to the selected capture; inspect `groups` before choosing them. See [Dashboard and saved queries](apps/docs/content/docs/dashboard.mdx) for the full workflow.
+Scopes are provider-qualified. GitHub uses `github:owner/repo`; this fork also collects Jira, Linear, Notion, and optional Beads snapshots with `open` (see below). Query remains offline and can import normalized models through `--input model.json`; GitHub graph JSON from `-o graph.json` is a different format. Unsupported provider filters fail explicitly. Cluster indices belong to the selected capture; inspect `groups` before choosing them. See [Dashboard and saved queries](apps/docs/content/docs/dashboard.mdx) for the full workflow.
 
 Set persistent weights explicitly:
 
@@ -115,6 +115,53 @@ issue-graph config show --provider github --scope owner/repo
 ```
 
 Defaults resolve from built-in values, global defaults, provider defaults, project defaults, then command overrides. Named weights range from 0 to 10. Config lives in `~/.issue-graph/config.json`; immutable captures and query receipts live in `captures/` and `history/`. `ISSUE_GRAPH_HOME` overrides the state directory. Dashboard sliders affect only the current URL/session; Reset weights restores that document's opening weights. Only `config set` updates persistent defaults. Captures remain on this machine until you remove them.
+
+## Work providers in this fork
+
+These additions are source-fork features, not claims about the upstream npm release. Build with `pnpm install --frozen-lockfile && pnpm build`, then run `node dist/bin.js` in place of `issue-graph` below. All collectors are read-only with respect to the provider. Credentials belong in your process environment or secret manager, never command arguments, scoring config, captures, or chat.
+
+```bash
+# Jira Cloud: set JIRA_URL, JIRA_EMAIL and JIRA_API_TOKEN in your environment.
+issue-graph open jira:ENG --state all -o jira-model.json
+issue-graph query jira:your-site.atlassian.net:ENG --view explore --open
+
+# Linear: set LINEAR_API_KEY (personal API key) or LINEAR_ACCESS_TOKEN (OAuth).
+issue-graph open linear:12345678-1234-1234-1234-123456789abc
+issue-graph query linear:12345678-1234-1234-1234-123456789abc --view swarm --metric links --open
+
+# Notion: set NOTION_API_TOKEN and share the task database with the integration.
+issue-graph open notion:12345678-1234-1234-1234-123456789abc \
+  --status-property Status --closed-status Done --closed-status Cancelled
+
+# Optional Beads: read compatible tracked JSONL, no br/bd binary required.
+issue-graph open beads:my-project --input .beads/issues.jsonl --state all
+issue-graph query beads:my-project --view explore --open
+```
+
+| Provider | Scope and configuration | Captured evidence |
+| --- | --- | --- |
+| Jira | Uppercase project key; `JIRA_URL=https://your-site.atlassian.net`, `JIRA_EMAIL`, **unscoped** `JIRA_API_TOKEN`. Cloud REST v3 only; no Server/Data Center, scoped-token gateway, or OAuth flow. The account needs Browse Projects and any relevant issue-security access. | Summary, reporter, native workflow label/category, parent and directed issue links; URLs from descriptions. |
+| Linear | Project UUID (from a project link's Copy project ID action); personal key with read access to the project/team, or an existing OAuth token with read permission. No login/token-refresh flow. | Title, creator, workflow label/type, parent/children, outgoing and inverse typed relations, description URLs. |
+| Notion | **Data source UUID**, not database UUID. With API version `2025-09-03`, retrieve the parent database to find its `data_sources[].id`; share it and related databases with a read-content integration. | Task page titles, creator IDs, status/select labels, relation properties and URL/rich-text property links. No page-body blocks, comments, formulas, rollups, or wiki traversal. |
+| Beads (optional) | Stable project name and compatible tracked JSONL, default `.beads/issues.jsonl`; no credentials, `br`, or `bd` binary required. | String bead IDs, native status, priority (0–4), issue type, directed typed dependencies with attribution. Empty web links and no synthetic numbers. |
+
+`open <provider:scope> --help` lists supported options. Non-GitHub collection prints a **raw normalized dashboard model** (JSON by default), saves a provider-qualified latest model unless `--no-save`, and accepts `-o PATH.json` for an explicit export. It does not launch a browser; follow with `query --open` or `dashboard`. `query --input model.json` also works. Jira's saved/query identity includes the site hostname; use the returned `id` unchanged. Linear and Notion UUIDs are canonicalized. `auth status` still checks GitHub's `gh` sign-in only. `graph`, `rank`, `cluster`, `reconcile`, and `plan` remain GitHub-only.
+
+The default inventory is unclosed work (`--state all` includes completed items). Notion maps the `Status` status/select property by exact option name: `Done` is closed by default; repeated `--closed-status` replaces that default. Configure every completed/cancelled option; all other nonempty options are open. Missing status is `UNKNOWN`, retained with a warning. Notion's `--budget` counts pages scanned **before** state filtering, so a budget dominated by completed tasks can produce few or zero open items.
+
+All providers preserve native `stateLabel`; `OPEN` is a coarse unclosed classification, **not readiness**. Beads `blocked`, `deferred`, `in_progress`, `pinned`, and `hooked` remain unclosed; `tombstone` is archived and excluded unless `--state all`. Beads priority is separate metadata, not Heat; no readiness calculation, scheduler, or priority ranking is provided. The originating tracker remains authoritative for readiness and mutations. **JSONL can lag database-backed changes until exported/flushed.** `br`/`bd` can optionally produce a fresh export, but the importer never invokes either or reads a database; snapshot coverage certifies only imported records, not freshness. A `blocks` dependency goes from `issue_id` to `depends_on_id` (dependent → prerequisite), and `parent-child` goes child → parent.
+
+Beads compatibility is format-based, not inferred from a CLI name: one issue object per line with string `id`, `title`, and `status`; optional `priority` (integer 0–4), `issue_type`, `created_by`, and `dependencies`. Each dependency must contain matching `issue_id`, string `depends_on_id`, and nonempty string `type`; optional `created_by`/`created_at` attribution is retained. Additional fields are ignored. Unknown/custom statuses keep their native label but map to UNKNOWN with a coverage warning, not guessed readiness. Verified with a real beads_rust export (718 records, 197 dependencies) and a schema-derived `bd` fixture from [steveyegge/beads's Issue/Dependency definitions](https://github.com/steveyegge/beads/blob/7477ec1352d9380b692773bc3c2e66ae2e60ae37/internal/types/types.go) and [flat JSONL exporter](https://github.com/steveyegge/beads/blob/7477ec1352d9380b692773bc3c2e66ae2e60ae37/cmd/bd/export.go). `bd`'s `_type: "issue"` wrapper is flat and accepted; `_type: "memory"` records are excluded and counted in coverage. Other record types/malformed records fail explicitly. This is not a guarantee for every tracker version or arbitrary JSONL. `runs list` shows qualified model identities; `runs rm beads:my-project` removes only that saved model, never the source export.
+
+Coverage is explicit: default `--budget 1000`, `--max-pages 100`, each configurable from 1 to 1000. Linear fetches 10 issues per request to stay within its GraphQL complexity limit; nested relationships are capped at 100 each. Notion inline relations stop at the API's first 25, with truncation flagged. Missing/out-of-scope endpoints stay as typed links but are not recursively read or rendered as invented nodes. Inventory caps, relationship truncation, unknown status, missing endpoints, and Notion query-limit signals make coverage incomplete and exit 1; complete scoped captures exit 0, invalid usage exits 2. HTTP/GraphQL failures stop collection without replacing a saved capture; no automatic retries. Requests time out after 30 seconds and refuse redirects. API permissions, archived items omitted by APIs, and concurrent edits prevent a claim of global or transactional completeness. None of these providers invents discussion Heat, PR reviews, file overlaps, or GitHub closing semantics.
+
+These inventories expose Explore and Swarm with Links only, not Impact/Blast (which would imply unblocking semantics) or Depth (there is no recursive traversal). Graph arrows retain source → target dependency/hierarchy direction; Jira links with identical inward/outward labels, Linear non-blocking associations, and Notion relation properties are rendered without arrows. Notion rich-text hyperlinks and page mentions are external links, not dependencies.
+
+### Slack Lists assessment (optional, not implemented)
+
+Slack now exposes [`slackLists.items.list`](https://docs.slack.dev/reference/methods/slackLists.items.list): read-only POST with bot or user `lists:read`, cursor pagination, archived-item selection, and optional column schema (`include_list`). It requires a **paid Slack workspace**, list access, and is Tier 2 (20+ requests/minute). A capture adapter is technically feasible without browser scraping.
+
+Its useful niche is lightweight Slack-native follow-up tracking. However, list columns are arbitrary: title, status, owner, completion, and any dependency links need explicit schema mapping; list records are not inherently issue/dependency objects. It adds little graph value when Slack merely links to Jira/Linear/Notion tasks. Defer it until a real list schema and permitted test workspace are available. If added, keep it opt-in, retain native fields and honest coverage, and do not request `lists:write` or block other providers.
 
 ## Agents and integrations
 

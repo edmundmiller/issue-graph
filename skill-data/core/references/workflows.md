@@ -102,7 +102,8 @@ immutable captures and query history locally. A missing capture is an error, not
 permission to fetch a different project or silently remove filters.
 
 1. Select the exact provider and scope. `github:owner/repo` selects a repository;
-   `linear:WORKSPACE_ID:project:PROJECT_ID` selects one Linear project. Omit scope
+   `linear:PROJECT_UUID` selects one collected Linear project. Imported models can
+   use other stable identities; copy their returned scope unchanged. Omit scope
    only when exactly one saved model exists, or use `--input model.json` to import a
    normalized model. Raw provider API responses are not normalized models.
 2. Run `issue-graph query github:owner/repo --json --no-open`. Read `capabilities`,
@@ -210,6 +211,20 @@ Treat its actions as a verification queue. The mutations below describe possible
 - `keep-untracked`: reproduce or inspect before prioritizing.
 
 If `limits.seedLimitReached` is true, `limits.cappedOut` is non-empty, or `limits.fetchFailures` is non-empty, report the incomplete coverage. Increase `--budget`, re-seed the omitted neighborhood, or retry failed nodes before claiming the backlog was fully reconciled.
+
+## Read-only work providers (this fork)
+
+Collect with `open jira:PROJECT`, `open linear:PROJECT_UUID`, or `open notion:DATA_SOURCE_UUID`; retrieve scope-specific `--help` before using credentials. Jira requires `JIRA_URL`, `JIRA_EMAIL`, and an unscoped `JIRA_API_TOKEN`; Linear uses `LINEAR_API_KEY` or `LINEAR_ACCESS_TOKEN`; Notion uses `NOTION_API_TOKEN` with the task data source shared to a read-content integration. Never put secrets in chat, flags, or scoring config. `auth status` remains GitHub-only.
+
+These collectors output raw normalized model JSON and save a latest provider-qualified dashboard run unless `--no-save`. Explicit `-o PATH.json` still exports with that flag. They do not automatically open a browser or run agents. Follow with `query` using the model's returned `id`, or import its JSON with `query --input`. Jira identity includes its site hostname; Linear/Notion use canonical UUIDs. GitHub graph JSON is a different format. Other live commands remain GitHub-only.
+
+Use `--state all` to include completed work. For Notion, the scope is a data source ID, not a database ID; the collector uses API version `2025-09-03`. Map the exact status/select property with `--status-property` (default `Status`) and repeat `--closed-status` for every completed/cancelled option (default `Done`, replaced by explicit values). Other nonempty options are unclosed; missing status stays UNKNOWN. No comments, page blocks, formulas, rollups, or wiki traversal are read. Notion's budget counts scanned pages before status filtering.
+
+Default budget is 1000 items, inventory page cap 100; both flags accept 1–1000. Linear nested relationship connections stop at 100 each; Notion inline relations can stop at 25. Caps, missing endpoints, unknown statuses, and query-limit signals are reported as incomplete coverage (exit 1). Provider read failures preserve the prior saved capture and fail; no automatic retry. Completeness is scoped to API-visible data, not inaccessible/archived work or a transactional snapshot. Unsupported Heat, Rank, PR solution/review, and file-overlap signals are not manufactured.
+
+Optional Beads: `open beads:PROJECT --input .beads/issues.jsonl --state all` reads compatible tracked issue JSONL directly. Neither br nor bd is required or invoked; either may optionally produce a fresh export. Compatibility is verified against a real beads_rust fixture and bd's documented flat Issue/Dependency export schema, not inferred from the executable name. Records need string `id`, `title`, `status`; optional dependencies use `issue_id`, `depends_on_id`, and `type`. Flat `_type: issue` records are accepted; `_type: memory` records are excluded with a coverage count. Unknown record types/malformed data fail. Preserve string IDs, `stateLabel`, `stateType`, `priority`, `issueType`, and typed directed evidence. `blocks` goes dependent → prerequisite; `parent-child` goes child → parent. Empty URLs are intentional. Unclosed includes blocked/deferred/in-progress/pinned/hooked, not ready; the originating tracker remains authoritative. Custom/unknown statuses retain native labels with UNKNOWN state and a warning. Priority is not Heat. JSONL can lag database-backed changes until exported/flushed, so freshness/synchronization are unknown; never read/write SQLite, mutate JSONL, or infer readiness. Missing endpoints and caps are warnings. Only Explore/Swarm with Links are supported. Use the qualified identity from `runs list` with `runs rm` to remove a saved model without touching its source.
+
+Slack Lists is optional and unimplemented. A paid workspace and `lists:read` can use `slackLists.items.list`, but arbitrary column mapping and limited dependency semantics need a real schema/access fixture before implementation. It must not block the required providers.
 
 ## Plan mode
 

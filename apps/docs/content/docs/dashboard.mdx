@@ -95,9 +95,9 @@ Precedence is built-in, global, provider, project, then command. Partial updates
 
 Query identity is `provider:scope`. A bare `owner/repo` selects GitHub; omitting the scope works only when exactly one saved model is available. Query does not infer its scope from the current checkout.
 
-For another provider's normalized model, use its returned `provider` and `scope` fields. Pass them separately to `config show` or `config set`; `--scope` requires `--provider`. A Linear project model can use `linear:WORKSPACE_ID:project:PROJECT_ID`, keeping projects and workspaces distinct.
+For another provider's normalized model, use its returned `provider` and `scope` fields. Pass them separately to `config show` or `config set`; `--scope` requires `--provider`. This fork's collectors use `linear:PROJECT_UUID`, `notion:DATA_SOURCE_UUID`, `jira:SITE_HOST:PROJECT`, and `beads:PROJECT`; imported models can retain other stable identities.
 
-Read `capabilities` before choosing filters, views, or metrics. Unsupported choices fail explicitly. The shared query surface can consume normalized Linear or Jira data; it does not collect live Linear or Jira data.
+Read `capabilities` before choosing filters, views, or metrics. Unsupported choices fail explicitly. Query is offline. In this fork, `open jira:PROJECT`, `open linear:PROJECT_UUID`, and `open notion:DATA_SOURCE_UUID` collect live read-only inventories; `open beads:PROJECT --input .beads/issues.jsonl` imports a tracked snapshot. Use scope-specific `--help` for configuration, then query the returned model identity. Non-GitHub collection prints model JSON and saves a latest run unless `--no-save`; it does not launch a browser. These providers do not supply Heat or PR review/solution metrics. Native statuses are preserved, and unclosed work is not necessarily ready. See the fork README for provider-specific limits and the optional Slack Lists assessment.
 
 ## Local storage
 

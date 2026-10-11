@@ -35,7 +35,9 @@ If a command or asset is missing, report the CLI/skill mismatch and observed err
 
 For counts, skip graph discovery. Resolve repositories and authors from the request and available context; never silently enumerate an organization or guess members. Status accepts repeated repositories and repeated/comma-separated authors, with case-insensitive matching. Ask only if scope remains unresolved.
 
-Live collection supports GitHub. `open`, `rank`, and `cluster` accept a repository or items. `graph` needs items or `--label`. Items can be numbers, `owner/repo#123`, or URLs; bare numbers use `--repo` or the checkout's GitHub remote. Inspect an issue's graph before starting work and credit existing contributors.
+GitHub `open`, `rank`, and `cluster` accept a repository or items. `graph` needs items or `--label`. Items can be numbers, `owner/repo#123`, or URLs; bare numbers use `--repo` or the checkout's GitHub remote. Inspect an issue's graph before starting work and credit existing contributors.
+
+This fork also supports `open jira:PROJECT`, `open linear:PROJECT_UUID`, `open notion:DATA_SOURCE_UUID`, and optional `open beads:PROJECT --input .beads/issues.jsonl`. Load scope-specific `--help` for credentials and flags. These commands return normalized model JSON, save a provider-qualified latest run unless `--no-save`, and do not launch a browser; follow with `query` using the returned `id`. Read coverage warnings. Beads reads compatible issue JSONL from either br/bd with no binary required, never SQLite or mutations; JSONL can lag database changes until exported/flushed. Native blocked/deferred status is not readiness, and priority is not Heat. Slack Lists is assessed but not implemented.
 
 ## Query saved data
 
@@ -53,7 +55,7 @@ The link is a local file. If the chat client cannot open it, also give `issue-gr
 
 Weights resolve built-in → global → provider → project → command. Inspect `config show` first. Use `query --weights comments=4,reactions=3` for temporary exploration. Use `config set --weights comments=4` only when the user wants persistent defaults.
 
-Take `--provider` and `--scope` from the query result, without adding the provider prefix to `--scope`. Linear project identity includes workspace and project IDs, such as `linear:WORKSPACE_ID:project:PROJECT_ID`. This supports imported models; live Linear and Jira collection is not available.
+Take `--provider` and `--scope` from the query result, without adding the provider prefix to `--scope`. This fork's collectors use `linear:PROJECT_UUID`, `notion:DATA_SOURCE_UUID`, `jira:SITE_HOST:PROJECT`, and `beads:PROJECT`. Imported models may use other stable identities; never rewrite their returned scope.
 
 Dashboard sliders affect the URL/session only. Reset weights restores the document's opening weights. Config stores preferences, never credentials.
 
