@@ -21,6 +21,7 @@ export * from "./html.js";
 export * from "./overlaps.js";
 export * from "./plan.js";
 export * from "./priority.js";
+export * from "./providers.js";
 export * from "./reconcile.js";
 export * from "./refs.js";
 export * from "./render.js";
