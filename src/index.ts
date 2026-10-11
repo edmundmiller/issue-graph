@@ -11,6 +11,7 @@
  * `snapshot.ts` (node:fs) and `cluster.ts` (node:child_process) are CLI
  * internals with no external consumer, so they are deliberately not exported.
  */
+export * from "./beads.js";
 export * from "./classify.js";
 export * from "./crawl.js";
 export * from "./dashboard-filters.js";
