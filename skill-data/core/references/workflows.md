@@ -218,6 +218,20 @@ Collect with `open jira:PROJECT`, `open linear:PROJECT_UUID`, or `open notion:DA
 
 These collectors output raw normalized model JSON and save a latest provider-qualified dashboard run unless `--no-save`. Explicit `-o PATH.json` still exports with that flag. They do not automatically open a browser or run agents. Follow with `query` using the model's returned `id`, or import its JSON with `query --input`. Jira identity includes its site hostname; Linear/Notion use canonical UUIDs. GitHub graph JSON is a different format. Other live commands remain GitHub-only.
 
+### Jira status review
+
+Jira Cloud needs `JIRA_URL`, `JIRA_EMAIL`, and an unscoped `JIRA_API_TOKEN` in the authorized process environment or secret manager. The connector does not support OAuth, including TWG/ACLI OAuth sessions. If no Jira API token is available, report that requirement and stop the live collection; do not bridge an OAuth token into Basic auth or claim that an empty/partial result is verified.
+
+For a status overview, collect all workflow states and query the returned site-qualified model ID:
+
+```bash
+issue-graph open jira:ENG --state all --budget 1000 --max-pages 100
+issue-graph query jira:your-site.atlassian.net:ENG --state all \
+  --view swarm --group state --metric links --json --no-open
+```
+
+Replace the sample project and hostname with the requested scope and the exact `id` from `open`. Inspect `coverage`, warnings, counts, and native `stateLabel` values; return the exact `viewUrl`. In Swarm, grouping by **State** displays Jira's native workflow labels. Internally, `statusCategory=done` maps to `CLOSED` and all other categories map to `OPEN`. Thus `--state open` means not in the Done category; it is neither a literal Jira `Open` status filter nor a readiness signal. Use `--state all` when comparing workflow statuses. Jira coverage is limited to API-visible project items and captured relationships; linked issues outside the scope are not recursively fetched.
+
 Use `--state all` to include completed work. For Notion, the scope is a data source ID, not a database ID; the collector uses API version `2025-09-03`. Map the exact status/select property with `--status-property` (default `Status`) and repeat `--closed-status` for every completed/cancelled option (default `Done`, replaced by explicit values). Other nonempty options are unclosed; missing status stays UNKNOWN. No comments, page blocks, formulas, rollups, or wiki traversal are read. Notion's budget counts scanned pages before status filtering.
 
 Default budget is 1000 items, inventory page cap 100; both flags accept 1–1000. Linear nested relationship connections stop at 100 each; Notion inline relations can stop at 25. Caps, missing endpoints, unknown statuses, and query-limit signals are reported as incomplete coverage (exit 1). Provider read failures preserve the prior saved capture and fail; no automatic retry. Completeness is scoped to API-visible data, not inaccessible/archived work or a transactional snapshot. Unsupported Heat, Rank, PR solution/review, and file-overlap signals are not manufactured.
