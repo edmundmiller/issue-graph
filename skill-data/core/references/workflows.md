@@ -102,7 +102,8 @@ immutable captures and query history locally. A missing capture is an error, not
 permission to fetch a different project or silently remove filters.
 
 1. Select the exact provider and scope. `github:owner/repo` selects a repository;
-   `linear:PROJECT_UUID` selects one collected Linear project. Imported models can
+   `linear:PROJECT_UUID` selects one legacy Linear inventory. Native Linear project captures use
+   `linear:WORKSPACE_ID:project:PROJECT_ID`. Imported models can
    use other stable identities; copy their returned scope unchanged. Omit scope
    only when exactly one saved model exists, or use `--input model.json` to import a
    normalized model. Raw provider API responses are not normalized models.
@@ -214,9 +215,9 @@ If `limits.seedLimitReached` is true, `limits.cappedOut` is non-empty, or `limit
 
 ## Read-only work providers (this fork)
 
-Collect with `open jira:PROJECT`, `open linear:PROJECT_UUID`, or `open notion:DATA_SOURCE_UUID`; retrieve scope-specific `--help` before using credentials. Jira requires `JIRA_URL`, `JIRA_EMAIL`, and an unscoped `JIRA_API_TOKEN`; Linear uses `LINEAR_API_KEY` or `LINEAR_ACCESS_TOKEN`; Notion uses `NOTION_API_TOKEN` with the task data source shared to a read-content integration. Never put secrets in chat, flags, or scoring config. `auth status` remains GitHub-only.
+Collect with `open jira:PROJECT`, `open linear:PROJECT_UUID`, or `open notion:DATA_SOURCE_UUID`; retrieve scope-specific `--help` before using credentials. Jira requires `JIRA_URL`, `JIRA_EMAIL`, and an unscoped `JIRA_API_TOKEN`; Linear uses `LINEAR_API_KEY` or `LINEAR_ACCESS_TOKEN`; Notion uses `NOTION_API_TOKEN` with the task data source shared to a read-content integration. Never put secrets in chat, flags, or scoring config. `auth status` reports GitHub and native Linear connection state; it does not validate Jira, Notion, or legacy Linear inventory access.
 
-These collectors output raw normalized model JSON and save a latest provider-qualified dashboard run unless `--no-save`. Explicit `-o PATH.json` still exports with that flag. They do not automatically open a browser or run agents. Follow with `query` using the model's returned `id`, or import its JSON with `query --input`. Jira identity includes its site hostname; Linear/Notion use canonical UUIDs. GitHub graph JSON is a different format. Other live commands remain GitHub-only.
+These collectors output raw normalized model JSON and save a latest provider-qualified dashboard run unless `--no-save`. Explicit `-o PATH.json` still exports with that flag. They do not automatically open a browser or run agents. Follow with `query` using the model's returned `id`, or import its JSON with `query --input`. Jira identity includes its site hostname; Linear/Notion use canonical UUIDs. GitHub graph JSON is a different format. `graph`, `rank`, `cluster`, `reconcile`, and `plan` remain GitHub-only. Native `linear` is a separate live command described below.
 
 Use `--state all` to include completed work. For Notion, the scope is a data source ID, not a database ID; the collector uses API version `2025-09-03`. Map the exact status/select property with `--status-property` (default `Status`) and repeat `--closed-status` for every completed/cancelled option (default `Done`, replaced by explicit values). Other nonempty options are unclosed; missing status stays UNKNOWN. No comments, page blocks, formulas, rollups, or wiki traversal are read. Notion's budget counts scanned pages before status filtering.
 
@@ -291,3 +292,27 @@ Re-run the plan after each merge or closure; groups change as work lands.
 - Read-only means no GitHub mutations by the CLI, not no local side effects. Snapshots, explicit JSON/HTML exports, logs, and agent prompts can contain private repository metadata. `--no-save` does not block exports, shell redirection, or external-agent storage.
 - Repository access limits what can be observed. Inaccessible work is not absent work, and a public seed may lead to private references your credentials can read. Review the actual payload before sharing or sending it to an agent/provider; do not promise automatic redaction.
 - Status captures use restrictive local permissions, not encryption. Graph/reconcile snapshots and explicit exports have different filesystem behavior. Choose private destinations and retention deliberately.
+
+
+## Linear captures
+
+The native `linear` command complements the legacy `open linear:PROJECT_UUID` inventory. Native capture supports API credentials or read-only MCP login; the legacy inventory uses environment tokens only. Preserve their distinct saved identities when querying.
+
+Use `issue-graph linear --help` before a Linear workflow. Run `issue-graph linear status`
+first; if Linear is not connected, ask the user to run `issue-graph linear login` or to set
+`LINEAR_API_KEY`. Both read the connected workspace and never mutate Linear issues.
+
+- `issue-graph linear ENG-123 --workspace example --json` reads a bounded neighborhood.
+- `issue-graph linear --project UUID --html project.html` reads non-archived project issues
+  across teams and saves that project for `issue-graph dashboard`. Use `--no-save`
+  to skip the saved model; explicit HTML output is still written.
+- `--cluster` prints a task for the current agent. `--clusters PATH --html project.html`
+  applies proposed themes without changing native relationships or statuses.
+- `--github` reads attached GitHub issues and pull requests one hop through `gh`. A
+  blocked issue then shows whether each blocker's linked work is open, draft, closed,
+  or merged. An unreadable target marks its issue partial.
+
+Read coverage before making completeness claims: node/page limits and read failures
+can make the graph partial. Text mentions and non-GitHub attachment targets are not
+crawled, and GitHub targets are never expanded past one hop.
+The HTML is a static capture; regenerate it to refresh.

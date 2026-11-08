@@ -1,7 +1,18 @@
 export const landingTitle = "Find related work before you start";
-export const landingLastModified = "2026-09-27";
+export const landingLastModified = "2026-11-07";
 export const landingDescription =
-  "Map related issues and pull requests. Prioritize your backlog, then open the exact view in your browser.";
+  "Map GitHub and Linear relationships, collect Jira and Notion work, import Beads snapshots, and open the exact saved view in your browser.";
+
+export const providerCommands = {
+  github: "issue-graph open vercel-labs/portless",
+  linear: "issue-graph linear ENG-123 --workspace your-workspace --open",
+  model: "issue-graph open jira:ENG --state all",
+} as const;
+
+export const clusterCommands = [
+  "issue-graph cluster vercel-labs/portless",
+  "issue-graph cluster vercel-labs/portless --apply answer.json",
+].join("\n");
 
 export const workflows = [
   {

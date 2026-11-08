@@ -48,7 +48,7 @@ export function GET() {
       agentSetupPrompt,
       "```",
       "",
-      "Capture a backlog, filter saved work, and open the exact dashboard view before making changes. GitHub access is read-only. Captures and query history write local files. Query requires a saved capture.",
+      "Capture a GitHub repository or native Linear issue/project graph, collect Jira or Notion inventories, or import Beads JSONL. Filter saved work and open the exact dashboard view before making changes. Provider collection is read-only; native unclosed states do not establish readiness. Captures and query history write local files. Query requires a saved capture.",
       "",
       "## Command examples",
       "",

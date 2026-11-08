@@ -1,8 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { classify, fillMentionedBy } from "./classify.js";
 import {
@@ -24,6 +23,15 @@ import {
   type Model,
 } from "./html.js";
 import { renderHumanOutput } from "./human-output.js";
+import { loginLinear, sessionStore } from "./linear-auth.js";
+import {
+  type LinearCredential,
+  linearCredentialLine,
+  linearSetupGuide,
+  runLinear,
+} from "./linear-cli.js";
+import { linearDashboardModel } from "./linear-html.js";
+import { privateExportPath } from "./local-store.js";
 import { writeNextDashboard } from "./next-dashboard.js";
 import { fileOverlaps } from "./overlaps.js";
 import { buildPlanReport, renderPlan } from "./plan.js";
@@ -65,6 +73,7 @@ const USAGE = `usage: issue-graph [command] [scope...] [options]
 Run with no arguments inside a GitHub repository to open its backlog dashboard.
 
 commands
+  linear <issue>          read Linear issue relationships or capture --project UUID
   open [repo]              open issues and PRs → optional root-cause clusters → dashboard
   graph <item...>          reference graph of issues/PRs: linked work, competing fixes, overlap
   rank [repo]              what to fix first, by discussion heat
@@ -448,6 +457,47 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
     });
     return;
   }
+  if (argv[0] === "linear" && ["login", "logout", "status"].includes(argv[1] ?? "")) {
+    process.exitCode = await runLinearAccount(argv[1] as "login" | "logout" | "status");
+    return;
+  }
+  if (argv[0] === "linear") {
+    process.exitCode = await runLinear(
+      argv.slice(1),
+      async () => {
+        // Environment keys win; otherwise the browser session from `linear login`.
+        if (process.env.LINEAR_API_KEY || process.env.LINEAR_ACCESS_TOKEN) {
+          const { linearReader } = await import("./transports/linear.js");
+          return linearReader({
+            apiKey: process.env.LINEAR_API_KEY,
+            accessToken: process.env.LINEAR_ACCESS_TOKEN,
+          });
+        }
+        const { linearSessionToken } = await import("./linear-auth.js");
+        const token = await linearSessionToken(sessionStore());
+        if (!token) throw new Error(linearSetupGuide());
+        const { linearMcpReader } = await import("./transports/linear-mcp.js");
+        return linearMcpReader({ token });
+      },
+      {
+        stdout: (value) => process.stdout.write(value),
+        stderr: (value) => process.stderr.write(value),
+        readClusters: async (path) => JSON.parse(readFileSync(path, "utf8")),
+        github: () => shellTransport(),
+        dashboard: async (report, options) => {
+          const model = linearDashboardModel(report, options.clusters);
+          const out =
+            options.path || privateExportPath(`issue-graph-linear-${report.workspace.id}.html`);
+          writeNextDashboard(out, [model], modelDefaults([model]));
+          process.stderr.write(`wrote ${out}\n`);
+          if (options.save)
+            process.stderr.write(`dashboard run saved: ${writeDashboardModel(model.id, model)}\n`);
+          if (options.open) openInBrowser(out);
+        },
+      },
+    );
+    return;
+  }
   const args = parseArgs(argv);
   if (args.help) {
     console.log(USAGE);
@@ -464,7 +514,7 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
         "no saved runs yet: run issue-graph open owner/repo first (without --no-save)",
       );
     }
-    const out = args.htmlOut || join(tmpdir(), `issue-graph-dashboard-${Date.now()}.html`);
+    const out = args.htmlOut || privateExportPath("issue-graph-dashboard.html");
     writeNextDashboard(out, models, modelDefaults(models));
     process.stderr.write(`wrote ${out} (${models.map((m) => m.label ?? m.repo).join(", ")})\n`);
     if (args.openMode === "yes" || (args.openMode === "auto" && interactive())) openInBrowser(out);
@@ -762,8 +812,7 @@ export async function runCli(argv = process.argv.slice(2)): Promise<void> {
       ? (JSON.parse(readFileSync(args.clustersFile, "utf8")) as ClustersConfig)
       : (agentClusters ?? carriedClusters(readDashboardModel<Model>(repoName), nodes));
     const out =
-      args.htmlOut ||
-      join(tmpdir(), `issue-graph-${primary.owner}-${primary.repo}-${Date.now()}.html`);
+      args.htmlOut || privateExportPath(`issue-graph-${primary.owner}-${primary.repo}.html`);
     const model = dashboardModel(nodes, seedKeys, repoName, clusters, cappedOut.size);
     try {
       model.openCount = await repositoryOpenCount(transport, primary.owner, primary.repo);
@@ -824,8 +873,7 @@ async function runApply(a: Args): Promise<void> {
     );
   }
   writeDashboardModel(repo, next);
-  const out =
-    a.htmlOut || join(tmpdir(), `issue-graph-${repo.replace("/", "-")}-${Date.now()}.html`);
+  const out = a.htmlOut || privateExportPath(`issue-graph-${repo.replace("/", "-")}.html`);
   writeNextDashboard(out, [next], modelDefaults([next]));
   const opened = a.openMode === "yes" || (a.openMode === "auto" && interactive());
   if (opened) openInBrowser(out);
@@ -963,6 +1011,45 @@ function runRuns(a: Args): void {
     );
 }
 
+function linearCredential(): LinearCredential {
+  if (process.env.LINEAR_API_KEY) return { kind: "api-key", variable: "LINEAR_API_KEY" };
+  if (process.env.LINEAR_ACCESS_TOKEN)
+    return { kind: "access-token", variable: "LINEAR_ACCESS_TOKEN" };
+  const store = sessionStore();
+  return store.read() ? { kind: "session", location: store.location } : { kind: "none" };
+}
+
+async function runLinearAccount(command: "login" | "logout" | "status"): Promise<number> {
+  const store = sessionStore();
+  if (command === "status") {
+    const credential = linearCredential();
+    process.stdout.write(`linear  ${linearCredentialLine(credential)}\n`);
+    if (credential.kind === "none") process.stdout.write(`\n${linearSetupGuide()}`);
+    return credential.kind === "none" ? 1 : 0;
+  }
+  if (command === "logout") {
+    process.stdout.write(
+      store.clear() ? "Signed out of Linear.\n" : "No Linear session to remove.\n",
+    );
+    return 0;
+  }
+  try {
+    await loginLinear(store, {
+      open: (url) => openInBrowser(url),
+      stderr: (value) => process.stderr.write(value),
+    });
+    process.stdout.write(`Linear connected. Session saved to ${store.location}.\n`);
+    if (process.env.LINEAR_API_KEY || process.env.LINEAR_ACCESS_TOKEN)
+      process.stdout.write(
+        "Note: LINEAR_API_KEY or LINEAR_ACCESS_TOKEN is set and takes precedence.\n",
+      );
+    return 0;
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : "Linear sign-in failed"}\n`);
+    return 1;
+  }
+}
+
 function runAuth(a: Args): void {
   const [sub = "status"] = a.rest;
   if (sub !== "status") throw new UsageError(`unknown auth command: ${sub} (use status)`);
@@ -972,7 +1059,21 @@ function runAuth(a: Args): void {
   } catch {
     ok = false;
   }
-  const rows = [{ provider: "github", signedIn: ok, via: "gh", fix: ok ? "" : "gh auth login" }];
+  const linear = linearCredential();
+  const rows = [
+    { provider: "github", signedIn: ok, via: "gh", fix: ok ? "" : "gh auth login" },
+    {
+      provider: "linear",
+      signedIn: linear.kind !== "none",
+      via:
+        linear.kind === "session"
+          ? "Linear MCP"
+          : linear.kind === "none"
+            ? "linear login"
+            : linear.variable,
+      fix: linear.kind === "none" ? "issue-graph linear login" : "",
+    },
+  ];
   if (a.format === "json") console.log(JSON.stringify(rows, null, 2));
   else
     for (const r of rows)

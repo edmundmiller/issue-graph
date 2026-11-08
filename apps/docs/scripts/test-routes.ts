@@ -394,8 +394,9 @@ assert.ok(Array.isArray(results) && results.length > 0, "Native search results")
 assert.ok(results.some((result: { url?: string }) => result.url?.startsWith("/docs")));
 const llms = await request("/llms.txt");
 assert.equal(llms.response.status, 200);
-assert.match(llms.body, /npm install -g issue-graph@latest/);
-assert.match(llms.body, /npx issue-graph@latest --help/);
+assert.match(llms.body, /https:\/\/github\.com\/edmundmiller\/issue-graph#start-here/);
+assert.match(llms.body, /pack, and install the local tarball/);
+assert.doesNotMatch(llms.body, /npx issue-graph@latest --help/);
 assert.doesNotMatch(llms.body, /release is pending/i);
 for (const slug of docsSlugs)
   assert.ok(llms.body.includes(canonicalUrl(slug ? `/docs/${slug}` : "/docs")));

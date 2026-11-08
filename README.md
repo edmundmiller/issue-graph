@@ -1,17 +1,21 @@
 # issue-graph
 
+Find related issues and pull requests before you start work. For humans and agents.
+
 <p>
   <a href="https://vercel.com/labs#active-experiments"><img alt="Vercel Labs Experiment" src="https://img.shields.io/badge/LABS-EXPERIMENT-0a0a0a.svg?style=for-the-badge&amp;logo=Vercel&amp;labelColor=000000" height="28"></a>
+  <a href="https://www.npmjs.com/package/issue-graph"><img alt="npm version: issue-graph" src="https://img.shields.io/npm/v/issue-graph.svg?style=for-the-badge&amp;labelColor=000000" height="28"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg?style=for-the-badge&amp;labelColor=000000" height="28"></a>
 </p>
 
-Find related issues, competing changes, and unresolved follow-ups before you start work.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://issue-graph.dev/readme-hero-dark.png">
+  <img alt="issue-graph: open issues and pull requests from vercel-labs/portless grouped into five root-cause clusters, such as proxy port allocation and TLS trust" src="https://issue-graph.dev/readme-hero-light.png">
+</picture>
 
 This is **[edmundmiller/issue-graph](https://github.com/edmundmiller/issue-graph)**, a fork of Vercel Labs' issue-graph. It traces GitHub issues/PRs and adds read-only Jira, Linear, Notion, and optional Beads JSONL inventories. **The npm package `issue-graph@latest` and issue-graph.dev are upstream, not this fork.**
 
-![issue-graph demo: related fixes and follow-ups, superseded PRs to review, and a per-author PR status ledger](https://issue-graph.dev/issue-graph-workflows.gif)
-
-Illustrated workflows: Graph → Reconcile → PR status. [Static version](https://issue-graph.dev/issue-graph-workflows.png) · [Explore the workflows](https://issue-graph.dev/docs).
+The native `linear` command now follows issue neighborhoods or captures full projects, with read-only browser login, API credentials, attachment links, and optional GitHub lookups. The fork's existing `open linear:PROJECT_UUID` inventory remains supported. Both preserve native status and report coverage limits.
 
 ## Start here
 
@@ -22,7 +26,7 @@ git clone https://github.com/edmundmiller/issue-graph.git issue-graph-fork
 cd issue-graph-fork
 npm exec --yes --package=pnpm@10.34.5 -- pnpm install --frozen-lockfile
 npm exec --yes --package=pnpm@10.34.5 -- pnpm pack --pack-destination .fork-pack
-npm install --global --prefix "$HOME/.local/issue-graph-fork" ./.fork-pack/issue-graph-0.5.0.tgz
+npm install --global --prefix "$HOME/.local/issue-graph-fork" ./.fork-pack/issue-graph-0.6.0.tgz
 export PATH="$HOME/.local/issue-graph-fork/bin:$PATH"
 hash -r
 issue-graph --help
@@ -43,7 +47,7 @@ ISSUE_GRAPH_HOME="$PWD/.fork-demo" issue-graph query beads:demo --view explore -
 
 Expect three native string IDs (`demo-task`, `demo-prerequisite`, `demo-epic`), `blocked`/`in_progress`/`open` statuses, and two directed dependencies. Coverage is complete **for these fixture records**, not a freshness or readiness guarantee. The query writes a local HTML dashboard and returns its exact `viewUrl`; use `--open` instead of `--no-open` on a machine with a browser opener. No provider credentials, `gh`, `br`, or `bd` are needed. For your own project, change the scope and pass its tracked `.beads/issues.jsonl` path; the input is never modified.
 
-See [provider setup and limits](#work-providers-in-this-fork) for live inventories. GitHub queries separately require [GitHub CLI](https://cli.github.com) and `gh auth login`; Jira/Linear/Notion do not use `gh` authentication.
+See [provider setup and limits](#work-providers-in-this-fork) for live inventories. GitHub queries separately require [GitHub CLI](https://cli.github.com) and `gh auth login`; Jira, Linear, and Notion provider reads do not use `gh` authentication. Native `linear --github` additionally uses `gh` to read attached GitHub issues and PRs.
 
 Trace public [agent-browser issue #1113](https://github.com/vercel-labs/agent-browser/issues/1113) without saving a snapshot:
 
@@ -53,7 +57,7 @@ issue-graph graph vercel-labs/agent-browser#1113 --depth 1 --budget 12 --no-save
 
 At the 2026-09-22 capture, issue #1113 was closed, [PR #1137](https://github.com/vercel-labs/agent-browser/pull/1137) was merged, [regression #1148](https://github.com/vercel-labs/agent-browser/issues/1148) was closed, and follow-ups [#1371](https://github.com/vercel-labs/agent-browser/issues/1371) and [#1607](https://github.com/vercel-labs/agent-browser/issues/1607) were open. Check the open follow-ups before assuming the fix covers them.
 
-Check missing references and crawl limits in the report. Each run queries GitHub, so results can change. [Capture details](https://issue-graph.dev/docs/graph).
+Check missing references and crawl limits in the report. Each run queries GitHub, so results can change. [Capture details](apps/docs/content/docs/graph.mdx).
 
 ### Update the fork installation
 
@@ -61,86 +65,57 @@ Check missing references and crawl limits in the report. Each run queries GitHub
 git pull --ff-only
 npm exec --yes --package=pnpm@10.34.5 -- pnpm install --frozen-lockfile
 npm exec --yes --package=pnpm@10.34.5 -- pnpm pack --pack-destination .fork-pack
-npm install --global --prefix "$HOME/.local/issue-graph-fork" ./.fork-pack/issue-graph-0.5.0.tgz
+npm install --global --prefix "$HOME/.local/issue-graph-fork" ./.fork-pack/issue-graph-0.6.0.tgz
 ```
 
 Use `issue-graph --help` to check the commands supported by your installed release.
 
 Run updates from your fork checkout. For reproducible installs, check out a reviewed commit before packing. If the package version changes, use the new tarball filename printed by `pack`. Do not update this fork with `npm install issue-graph@latest`.
 
-## Choose a workflow
+## Quick start
 
-| Need | Installed command |
-| --- | --- |
-| Capture a backlog and open its dashboard | `issue-graph open owner/repo` |
-| Inspect an issue or PR before starting work | `issue-graph graph vercel-labs/agent-browser#1113 --depth 1 --budget 12 --no-save` |
-| Survey labeled open issues | `issue-graph rank owner/repo --label bug` |
-| Filter a saved model and open its exact dashboard view | `issue-graph query github:owner/repo --state open --view rank --open` |
-| Count open PRs by author | `issue-graph status vercel-labs/portless --author ctate,Railly` |
-| See PR evidence, assignees, and requested reviewers | `issue-graph status vercel-labs/portless --author ctate --view prs` |
-| Reconcile an open backlog, with or without labels | `issue-graph reconcile owner/repo --format json --no-save` |
-| Select the next backlog action | `issue-graph plan owner/repo --format json` |
-| Inspect the machine contract | `issue-graph schema` |
-
-Graph and plan default to compact human output in a terminal. Graph still prints Markdown in a pipe; plan prints versioned JSON. Use `--format text` for the human view outside a terminal, or `--format markdown` for Markdown. Plan also supports `--format json`. Human output wraps at up to 100 columns; monochrome bold/dim styling requires a TTY and is disabled by `NO_COLOR`, `CI`, or `TERM=dumb`.
-
-Graph `-o PATH.json` writes a graph file; its legacy `--format json` still prints Markdown. Reconcile defaults to terminal Markdown and piped JSON; `--format human` and `text` select Markdown. Status defaults to a terminal table or JSON in a pipe; its `--json` flag takes no filename.
-
-## Explore and compare
-
-Export a graph and a local Next.js dashboard:
+From a GitHub repository checkout:
 
 ```bash
-issue-graph graph vercel-labs/agent-browser#1113 --depth 1 --budget 12 --no-save -o graph.json -o graph.html
+issue-graph
+# -> captures open issues and PRs, then opens the dashboard
 ```
 
-Open `graph.html` directly in a browser to explore relationships, filter nodes, and review cleanup candidates. Keep the sibling `_next/` directory and `font-LICENSE.txt` when moving the export.
-
-Graph and reconcile runs save local history under `~/.issue-graph/` by default. Re-running the same graph seeds shows a snapshot diff; reconciliation tracks repository-level action changes. `--no-save` skips saving history but does not prevent explicitly requested `-o` exports. Plan writes no snapshots.
-
-Status history is opt-in:
+Pass a repository, or one or more items, to choose the scope:
 
 ```bash
-issue-graph status vercel-labs/portless --author ctate,Railly --save
-issue-graph status vercel-labs/portless --author ctate,Railly --since last --save
+issue-graph open vercel-labs/portless
+issue-graph graph vercel-labs/agent-browser#1113 --depth 1
 ```
 
-Status reports unknown counts as `?` or `null`. Check coverage before using totals, and review CI and unresolved review threads separately before merging.
-
-## Query a saved dashboard
-
-Save a dashboard model with `issue-graph open owner/repo --no-open`, then use its filters and scoring from the CLI without another provider request:
+For Linear, connect once in the browser, then capture an issue neighborhood or a whole project:
 
 ```bash
-issue-graph query github:owner/repo --kind Issue --heat-min 50 --view rank --open
-issue-graph query github:owner/repo --cluster 0 --cluster 2 --view swarm --metric heat --json
-issue-graph query --history HISTORY_ID --open
+issue-graph linear login
+issue-graph linear ENG-123 --workspace your-workspace --open
+issue-graph linear --project 12345678-1234-1234-1234-123456789abc --open
 ```
 
-Query prints JSON in a pipe. In a terminal it shows a short summary and requests opening the exact view; `--no-open` suppresses that request. Results include captured items, scores, capabilities, coverage, a capture ID, a history ID and `viewUrl`. Return `viewUrl` unchanged, including the query string and hash. The Next.js page embeds the capture and effective weights; its compiled assets are stored beside it, so an old link stays stable when defaults or saved runs change. Replace `HISTORY_ID` with the returned `historyId` to replay frozen parameters. `--capture` queries the same data with current defaults and newly supplied filters, without inheriting earlier filters.
+The full walkthrough is in [Get started](apps/docs/content/docs/get-started.mdx).
 
-Scopes are provider-qualified. GitHub uses `github:owner/repo`; this fork also collects Jira, Linear, Notion, and optional Beads snapshots with `open` (see below). Query remains offline and can import normalized models through `--input model.json`; GitHub graph JSON from `-o graph.json` is a different format. Unsupported provider filters fail explicitly. Cluster indices belong to the selected capture; inspect `groups` before choosing them. See [Dashboard and saved queries](apps/docs/content/docs/dashboard.mdx) for the full workflow.
+## How it works
 
-Set persistent weights explicitly:
+Each run starts from seeds, such as open issues, a label, or specific items, and follows references up to a depth and node budget you set. An item with many references is fetched but not expanded further. The report lists missing references, failed reads, and crawl limits, so you can see what the graph does not cover.
 
-```bash
-issue-graph config set --weights comments=3,age=1
-issue-graph config set --provider github --scope owner/repo --weights reactions=4
-issue-graph config show --provider github --scope owner/repo
-```
+The dashboard groups items into connected components by default. Your agent can propose root-cause clusters instead: `issue-graph cluster` prints the task, and `cluster --apply` loads the answer. The dashboard has four views: Explore, Impact, Swarm, and Rank. For GitHub, Rank orders open work by Heat, a weighted score of discussion activity with weights you control.
 
-Defaults resolve from built-in values, global defaults, provider defaults, project defaults, then command overrides. Named weights range from 0 to 10. Config lives in `~/.issue-graph/config.json`; immutable captures and query receipts live in `captures/` and `history/`. `ISSUE_GRAPH_HOME` overrides the state directory. Dashboard sliders affect only the current URL/session; Reset weights restores that document's opening weights. Only `config set` updates persistent defaults. Captures remain on this machine until you remove them.
+Runs save locally under `~/.issue-graph/`, and `issue-graph dashboard` shows every saved run with a project switcher. `issue-graph query` filters a saved capture from the CLI and returns a link to the exact dashboard view. See [Dashboard](apps/docs/content/docs/dashboard.mdx).
 
 ## Work providers in this fork
 
-These additions are source-fork features, not claims about the upstream npm release. Build with `pnpm install --frozen-lockfile && pnpm build`, then run `node dist/bin.js` in place of `issue-graph` below. All collectors are read-only with respect to the provider. Credentials belong in your process environment or secret manager, never command arguments, scoring config, captures, or chat.
+The `open <provider:scope>` inventories below are fork features. Native `linear` issue and project graphs are described separately in [Linear](apps/docs/content/docs/linear.mdx). Build with `pnpm install --frozen-lockfile && pnpm build`, then run `node dist/bin.js` in place of `issue-graph` below. All collectors are read-only with respect to the provider. Credentials belong in your process environment or secret manager, never command arguments, scoring config, captures, or chat.
 
 ```bash
 # Jira Cloud: set JIRA_URL, JIRA_EMAIL and JIRA_API_TOKEN in your environment.
 issue-graph open jira:ENG --state all -o jira-model.json
 issue-graph query jira:your-site.atlassian.net:ENG --view explore --open
 
-# Linear: set LINEAR_API_KEY (personal API key) or LINEAR_ACCESS_TOKEN (OAuth).
+# Legacy Linear project inventory: set LINEAR_API_KEY (personal API key) or LINEAR_ACCESS_TOKEN (OAuth).
 issue-graph open linear:12345678-1234-1234-1234-123456789abc
 issue-graph query linear:12345678-1234-1234-1234-123456789abc --view swarm --metric links --open
 
@@ -156,11 +131,11 @@ issue-graph query beads:my-project --view explore --open
 | Provider | Scope and configuration | Captured evidence |
 | --- | --- | --- |
 | Jira | Uppercase project key; `JIRA_URL=https://your-site.atlassian.net`, `JIRA_EMAIL`, **unscoped** `JIRA_API_TOKEN`. Cloud REST v3 only; no Server/Data Center, scoped-token gateway, or OAuth flow. The account needs Browse Projects and any relevant issue-security access. | Summary, reporter, native workflow label/category, parent and directed issue links; URLs from descriptions. |
-| Linear | Project UUID (from a project link's Copy project ID action); personal key with read access to the project/team, or an existing OAuth token with read permission. No login/token-refresh flow. | Title, creator, workflow label/type, parent/children, outgoing and inverse typed relations, description URLs. |
+| Linear (`open`) | Project UUID (from a project link's Copy project ID action); personal key with read access to the project/team, or an existing OAuth token with read permission. This inventory does not use the `linear login` session or refresh tokens. | Title, creator, workflow label/type, parent/children, outgoing and inverse typed relations, description URLs. |
 | Notion | **Data source UUID**, not database UUID. With API version `2025-09-03`, retrieve the parent database to find its `data_sources[].id`; share it and related databases with a read-content integration. | Task page titles, creator IDs, status/select labels, relation properties and URL/rich-text property links. No page-body blocks, comments, formulas, rollups, or wiki traversal. |
 | Beads (optional) | Stable project name and compatible tracked JSONL, default `.beads/issues.jsonl`; no credentials, `br`, or `bd` binary required. | String bead IDs, native status, priority (0–4), issue type, directed typed dependencies with attribution. Empty web links and no synthetic numbers. |
 
-`open <provider:scope> --help` lists supported options. Non-GitHub collection prints a **raw normalized dashboard model** (JSON by default), saves a provider-qualified latest model unless `--no-save`, and accepts `-o PATH.json` for an explicit export. It does not launch a browser; follow with `query --open` or `dashboard`. `query --input model.json` also works. Jira's saved/query identity includes the site hostname; use the returned `id` unchanged. Linear and Notion UUIDs are canonicalized. `auth status` still checks GitHub's `gh` sign-in only. `graph`, `rank`, `cluster`, `reconcile`, and `plan` remain GitHub-only.
+`open <provider:scope> --help` lists supported options. These `open` inventories print a **raw normalized dashboard model** (JSON by default), save a provider-qualified latest model unless `--no-save`, and accept `-o PATH.json` for an explicit export. They do not launch a browser; follow with `query --open` or `dashboard`. `query --input model.json` also works. Jira's saved/query identity includes the site hostname; use the returned `id` unchanged. Linear and Notion UUIDs are canonicalized. `auth status` reports GitHub and native Linear connection state; it does not validate Jira, Notion, or the legacy Linear inventory credentials. `graph`, `rank`, `cluster`, `reconcile`, and `plan` remain GitHub-only.
 
 The default inventory is unclosed work (`--state all` includes completed items). Notion maps the `Status` status/select property by exact option name: `Done` is closed by default; repeated `--closed-status` replaces that default. Configure every completed/cancelled option; all other nonempty options are open. Missing status is `UNKNOWN`, retained with a warning. Notion's `--budget` counts pages scanned **before** state filtering, so a budget dominated by completed tasks can produce few or zero open items.
 
@@ -168,7 +143,7 @@ All providers preserve native `stateLabel`; `OPEN` is a coarse unclosed classifi
 
 Beads compatibility is format-based, not inferred from a CLI name: one issue object per line with string `id`, `title`, and `status`; optional `priority` (integer 0–4), `issue_type`, `created_by`, and `dependencies`. Each dependency must contain matching `issue_id`, string `depends_on_id`, and nonempty string `type`; optional `created_by`/`created_at` attribution is retained. Additional fields are ignored. Unknown/custom statuses keep their native label but map to UNKNOWN with a coverage warning, not guessed readiness. Verified with a real beads_rust export (718 records, 197 dependencies) and a schema-derived `bd` fixture from [steveyegge/beads's Issue/Dependency definitions](https://github.com/steveyegge/beads/blob/7477ec1352d9380b692773bc3c2e66ae2e60ae37/internal/types/types.go) and [flat JSONL exporter](https://github.com/steveyegge/beads/blob/7477ec1352d9380b692773bc3c2e66ae2e60ae37/cmd/bd/export.go). `bd`'s `_type: "issue"` wrapper is flat and accepted; `_type: "memory"` records are excluded and counted in coverage. Other record types/malformed records fail explicitly. This is not a guarantee for every tracker version or arbitrary JSONL. `runs list` shows qualified model identities; `runs rm beads:my-project` removes only that saved model, never the source export.
 
-Coverage is explicit: default `--budget 1000`, `--max-pages 100`, each configurable from 1 to 1000. Linear fetches 10 issues per request to stay within its GraphQL complexity limit; nested relationships are capped at 100 each. Notion inline relations stop at the API's first 25, with truncation flagged. Missing/out-of-scope endpoints stay as typed links but are not recursively read or rendered as invented nodes. Inventory caps, relationship truncation, unknown status, missing endpoints, and Notion query-limit signals make coverage incomplete and exit 1; complete scoped captures exit 0, invalid usage exits 2. HTTP/GraphQL failures stop collection without replacing a saved capture; no automatic retries. Requests time out after 30 seconds and refuse redirects. API permissions, archived items omitted by APIs, and concurrent edits prevent a claim of global or transactional completeness. None of these providers invents discussion Heat, PR reviews, file overlaps, or GitHub closing semantics.
+For these `open` inventories, coverage is explicit: default `--budget 1000`, `--max-pages 100`, each configurable from 1 to 1000. The legacy Linear inventory fetches 10 issues per request to stay within its GraphQL complexity limit; nested relationships are capped at 100 each. Notion inline relations stop at the API's first 25, with truncation flagged. Missing/out-of-scope endpoints stay as typed links but are not recursively read or rendered as invented nodes. Inventory caps, relationship truncation, unknown status, missing endpoints, and Notion query-limit signals make coverage incomplete and exit 1; complete scoped captures exit 0, invalid usage exits 2. HTTP/GraphQL failures stop collection without replacing a saved capture; no automatic retries. Requests time out after 30 seconds and refuse redirects. API permissions, archived items omitted by APIs, and concurrent edits prevent a claim of global or transactional completeness. None of these providers invents discussion Heat, PR reviews, file overlaps, or GitHub closing semantics.
 
 These inventories expose Explore and Swarm with Links only, not Impact/Blast (which would imply unblocking semantics) or Depth (there is no recursive traversal). Graph arrows retain source → target dependency/hierarchy direction; Jira links with identical inward/outward labels, Linear non-blocking associations, and Notion relation properties are rendered without arrows. Notion rich-text hyperlinks and page mentions are external links, not dependencies.
 
@@ -178,7 +153,7 @@ Slack now exposes [`slackLists.items.list`](https://docs.slack.dev/reference/met
 
 Its useful niche is lightweight Slack-native follow-up tracking. However, list columns are arbitrary: title, status, owner, completion, and any dependency links need explicit schema mapping; list records are not inherently issue/dependency objects. It adds little graph value when Slack merely links to Jira/Linear/Notion tasks. Defer it until a real list schema and permitted test workspace are available. If added, keep it opt-in, retain native fields and honest coverage, and do not request `lists:write` or block other providers.
 
-## Agents and integrations
+## For AI agents
 
 Install the fork CLI using [Start here](#start-here). Agents can read [AGENTS.md](AGENTS.md) directly and load bundled guidance through the installed CLI; a separate skill installer is optional:
 
@@ -197,9 +172,23 @@ issue-graph skills get core --full
 
 Use `--full` for workflow references, `issue-graph skills list` for available guides, and command-specific `--help` for syntax. If the CLI or guidance is missing, report the error and ask for an authorized setup correction. See [Agents](apps/docs/content/docs/agents.mdx) for setup.
 
-Use `issue-graph cluster owner/repo` to print a root-cause clustering task for the calling agent, then `issue-graph cluster owner/repo --apply answer.json` (or `-` for stdin) to load its answer. For cron or CI, `--agent claude` or `--agent codex` sends it to an installed headless agent. Review the payload and the agent's permissions and data policy before using private repository evidence; the CLI does not sandbox that process.
+Use `issue-graph cluster owner/repo` to print a root-cause clustering task for the calling agent, then `issue-graph cluster owner/repo --apply answer.json` (or `-` for stdin) to load its answer. For cron or CI, `--agent claude` or `--agent codex` sends it to an installed headless agent. Review the payload and the agent's permissions and data policy before using private repository evidence; the CLI runs Claude without tools or MCP servers and Codex in a read-only sandbox, but Codex still loads its configured MCP servers.
 
-To consume the fork library, install the locally built `.fork-pack/issue-graph-0.5.0.tgz` in your application with `npm install /absolute/path/to/the/tarball`; `npm install issue-graph@latest` selects upstream. It separates the runtime-agnostic core (`issue-graph`, including `collectProvider` and `beadsModel`) from shell (`issue-graph/transport/shell`, using `gh`) and HTTP (`issue-graph/transport/http`, using `fetch` plus a token) transports. See [Library](apps/docs/content/docs/library.mdx) for ESM imports and server-side credential handling.
+## Commands
+
+Run `issue-graph --help` for the full list, or `issue-graph <command> --help` for one command.
+
+| Group | Commands | Docs |
+| --- | --- | --- |
+| Map work | `open`, `graph`, `linear` | [Graph](apps/docs/content/docs/graph.mdx), [Linear](apps/docs/content/docs/linear.mdx) |
+| Prioritize | `rank`, `cluster`, `reconcile`, `plan` | [Backlog](apps/docs/content/docs/backlog.mdx), [Agents](apps/docs/content/docs/agents.mdx) |
+| Dashboard | `dashboard`, `query`, `runs`, `config` | [Dashboard](apps/docs/content/docs/dashboard.mdx) |
+| Pull requests | `status` | [Status](apps/docs/content/docs/status.mdx) |
+| Setup | `auth`, `schema`, `skills` | [Reference](apps/docs/content/docs/reference.mdx) |
+
+## Library
+
+To consume the fork library, install the locally built `.fork-pack/issue-graph-0.6.0.tgz` in your application with `npm install /absolute/path/to/the/tarball`; `npm install issue-graph@latest` selects upstream. It separates the runtime-agnostic core (`issue-graph`, including `collectProvider` and `beadsModel`) from shell (`issue-graph/transport/shell`, using `gh`) and HTTP (`issue-graph/transport/http`, using `fetch` plus a token) transports. Native Linear also has `issue-graph/transport/linear` for API credentials. See [Library](apps/docs/content/docs/library.mdx) for ESM imports and server-side credential handling.
 
 ## Documentation
 
@@ -208,23 +197,24 @@ Browse documentation source in this checkout for fork changes. [issue-graph.dev/
 - [Get started](apps/docs/content/docs/get-started.mdx): installation, authentication, and a first result
 - [Graph](apps/docs/content/docs/graph.mdx): depth, caps, snapshots, and HTML
 - [Dashboard](apps/docs/content/docs/dashboard.mdx): filters, exact links, replay, and scoring defaults
+- [Linear](apps/docs/content/docs/linear.mdx): native issue/project graphs, authentication, and attachments
 - [Status](apps/docs/content/docs/status.mdx): counts, coverage, and history
 - [Backlog](apps/docs/content/docs/backlog.mdx): reconcile and plan
 - [Agents](apps/docs/content/docs/agents.mdx): skill setup and optional clustering
 - [Library](apps/docs/content/docs/library.mdx): core, shell, and HTTP integrations
 - [Security](apps/docs/content/docs/security.mdx): permissions and private data
 - [Reference](apps/docs/content/docs/reference.mdx): commands and output contracts
-- [Changelog](https://issue-graph.dev/docs/changelog): release notes
+- [Changelog](CHANGELOG.md): release notes
 
 ## Limits and privacy
 
-The CLI reads GitHub data and can save local snapshots or exports. Depth, node caps, hubs, permissions, and per-node API limits affect coverage. Inspect linked code and current behavior before closing an issue or merging a PR.
+Depth, node budgets, permissions, and API limits affect coverage. Check the linked code and current behavior before you close an issue or merge a PR.
 
-Snapshots, exports, logs, and cluster prompts can contain private repository metadata. Anyone with an HTML export can read its embedded data. Review content and storage permissions before sharing. See [security guidance](apps/docs/content/docs/security.mdx) and [vulnerability reporting](SECURITY.md).
+Saved runs, HTML exports, and cluster prompts can contain private repository metadata, and anyone with an export can read the data embedded in it. See [Security](apps/docs/content/docs/security.mdx) and [vulnerability reporting](SECURITY.md).
 
 ## Source development
 
-The source repository is public. Use Node.js 20.19.x or 22.12+ (24 recommended) and pnpm. Live queries also need GitHub CLI authentication. Follow [Contributing](CONTRIBUTING.md#setup) for setup.
+The source repository is public. Use Node.js 20.19.x or 22.12+ (24 recommended) and pnpm. Live GitHub queries also need GitHub CLI authentication; other providers use their own setup. Follow [Contributing](CONTRIBUTING.md#setup) for setup.
 
 To update a clean source checkout:
 

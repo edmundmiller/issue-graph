@@ -3,11 +3,13 @@ export const docsSlugs = [
   "get-started",
   "graph",
   "dashboard",
+  "linear",
   "status",
   "backlog",
   "agents",
   "library",
   "security",
+  "troubleshooting",
   "reference",
   "changelog",
 ] as const;

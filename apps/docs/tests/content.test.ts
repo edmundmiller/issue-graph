@@ -53,7 +53,7 @@ describe("documentation content contract", () => {
     expect(intro).toMatch(/^navTitle: Overview$/m);
   });
 
-  test("documents published npm-first installation and preserves access boundaries", async () => {
+  test("documents fork source installation and preserves access boundaries", async () => {
     const [intro, start, library, reference, security] = await Promise.all([
       read("content/docs/index.mdx"),
       read("content/docs/get-started.mdx"),
@@ -62,15 +62,18 @@ describe("documentation content contract", () => {
       read("content/docs/security.mdx"),
     ]);
     for (const page of [intro, start]) {
-      expect(page).toContain("npx issue-graph@latest --help");
-      expect(page).toContain("npm install --global issue-graph@latest");
-      expect(page).toContain("https://www.npmjs.com/package/issue-graph)");
+      expect(page).toContain("edmundmiller/issue-graph");
+      expect(page).toContain("https://github.com/edmundmiller/issue-graph#start-here");
+      expect(page).not.toContain("npm install --global issue-graph@latest");
+      expect(page).not.toContain("npx issue-graph@latest --help");
     }
-    expect(start).toContain("npm install --global issue-graph@latest");
-    expect(start.indexOf("## Install from npm")).toBeLessThan(
+    expect(start).toContain("examples/beads/issues.jsonl");
+    expect(start).toContain("commands.open.workProviders.providers");
+    expect(start.indexOf("## Install this fork")).toBeLessThan(
       start.indexOf("## Optional source development"),
     );
-    expect(library).toContain("npm install issue-graph@latest");
+    expect(library).toContain("npm install /absolute/path/to/.fork-pack/issue-graph-");
+    expect(library).not.toContain("npm install issue-graph@latest");
     expect(library).toContain('from "issue-graph"');
     expect(library).toContain('from "issue-graph/transport/http"');
     expect(library).toContain('from "issue-graph/transport/shell"');
@@ -115,7 +118,6 @@ describe("documentation content contract", () => {
       read("content/docs/index.mdx"),
       read("content/docs/get-started.mdx"),
       read("content/docs/graph.mdx"),
-      read("../../README.md"),
     ]);
     expect(example.command).toBe(exampleCommand);
     for (const page of pages) {
@@ -135,24 +137,22 @@ describe("documentation content contract", () => {
     expect(start).toContain("[Graph](/docs/graph)");
     expect(pages[2]).toContain(`${example.coverage.beyondDepthReferences} references`);
     expect(pages[2]).toContain(`${example.coverage.omittedEdges} edges`);
-    expect(pages[3]).toContain("[Capture details](https://issue-graph.dev/docs/graph)");
   });
 
-  test("ships illustrated README media with a static alternative", async () => {
+  test("ships a README hero image for light and dark themes", async () => {
     const readme = await read("../../README.md");
-    expect(readme).toContain("https://issue-graph.dev/issue-graph-workflows.gif");
-    expect(readme).toContain("[Static version](https://issue-graph.dev/issue-graph-workflows.png)");
-    expect(readme).toContain("Illustrated workflows:");
-    expect(readme).not.toContain("Public CLI output captured on September 22, 2026.");
-    const gif = await readFile(new URL("public/issue-graph-workflows.gif", appRoot));
-    expect(gif.toString("ascii", 0, 6)).toBe("GIF89a");
-    expect(gif.readUInt16LE(6)).toBe(1080);
-    expect(gif.readUInt16LE(8)).toBe(520);
-    expect(gif.length).toBeLessThan(100_000);
-    const still = await readFile(new URL("public/issue-graph-workflows.png", appRoot));
-    expect(still.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-    expect(still.readUInt32BE(16)).toBe(1080);
-    expect(still.readUInt32BE(20)).toBe(1560);
+    expect(readme).toContain(
+      '<source media="(prefers-color-scheme: dark)" srcset="https://issue-graph.dev/readme-hero-dark.png">',
+    );
+    expect(readme).toContain('src="https://issue-graph.dev/readme-hero-light.png"');
+    expect(readme).toMatch(/<img alt="issue-graph: [^"]+"/);
+    for (const theme of ["dark", "light"]) {
+      const image = await readFile(new URL(`public/readme-hero-${theme}.png`, appRoot));
+      expect(image.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+      expect(image.readUInt32BE(16)).toBe(2400);
+      expect(image.readUInt32BE(20)).toBe(1200);
+      expect(image.length).toBeLessThan(400_000);
+    }
   });
 
   test("root guidance selects the fork source package and retains upstream release documentation", async () => {
@@ -186,9 +186,11 @@ describe("documentation content contract", () => {
       read("content/docs/agents.mdx"),
       read("../../README.md"),
     ]);
-    const readmeAgents = readme.match(/^## Agents and integrations\n([\s\S]*?)(?=^## )/m)?.[1];
+    const readmeAgents = readme.match(/^## For AI agents\n([\s\S]*?)(?=^## )/m)?.[1];
     expect(readmeAgents).toBeDefined();
+    expect(readmeAgents).toContain("apps/docs/content/docs/agents.mdx");
     for (const page of [agents, readmeAgents ?? ""]) {
+      expect(page).not.toMatch(/\b\d+\.\d+\.\d+(?:-[\w.-]+)?\b/);
       expect(page).not.toMatch(/outdated|source-only|newer source stub|not available in npm/i);
       expect(page).not.toMatch(/do not (?:install|pair).*stub|npm root --global|cp -R/i);
       expect(page).toContain("npx skills@latest add edmundmiller/issue-graph");
@@ -207,6 +209,29 @@ describe("documentation content contract", () => {
     ]) {
       expect(agents).toContain(heading);
     }
+  });
+
+  test("keeps native Linear and legacy provider inventories distinct", async () => {
+    const [readme, dashboard, linear, core, reference] = await Promise.all([
+      read("../../README.md"),
+      read("content/docs/dashboard.mdx"),
+      read("content/docs/linear.mdx"),
+      read("../../skill-data/core/SKILL.md"),
+      read("content/docs/reference.mdx"),
+    ]);
+    for (const page of [readme, dashboard, linear, core, reference]) {
+      expect(page).toContain("open linear:PROJECT_UUID");
+      expect(page).toContain("linear login");
+      expect(page).not.toContain("Jira collection is not available");
+    }
+    for (const page of [dashboard, linear, core]) {
+      expect(page).toContain("linear:WORKSPACE_ID:project:PROJECT_ID");
+      expect(page).toContain("linear:PROJECT_UUID");
+    }
+    expect(readme).toContain("JIRA_API_TOKEN");
+    expect(readme).toContain("NOTION_API_TOKEN");
+    expect(readme).toContain("JSONL can lag");
+    expect(readme).toContain("priority is separate metadata, not Heat");
   });
 
   test("enables source links for the public repository", async () => {
@@ -229,7 +254,7 @@ describe("documentation content contract", () => {
     for (const [name, version] of Object.entries({
       "@vercel/geistdocs": "2.7.5",
       "@vercel/agent-readability": "0.7.0",
-      next: "16.3.5",
+      next: "16.3.8",
       react: "19.3.0",
       "react-dom": "19.3.0",
       geist: "1.7.2",

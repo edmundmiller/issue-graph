@@ -1,6 +1,6 @@
 {
   "name": "issue-graph",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publishConfig": {
     "access": "public"
   },
@@ -22,6 +22,10 @@
     "./transport/http": {
       "types": "./dist/transports/http.d.ts",
       "import": "./dist/transports/http.js"
+    },
+    "./transport/linear": {
+      "types": "./dist/transports/linear.d.ts",
+      "import": "./dist/transports/linear.js"
     }
   },
   "main": "./dist/index.js",
@@ -37,7 +41,7 @@
     "check:docs": "pnpm --filter @issue-graph/docs check",
     "test:docs": "pnpm --filter @issue-graph/docs test",
     "test:docs:routes": "pnpm --filter @issue-graph/docs test:routes",
-    "audit:docs": "pnpm --filter @issue-graph/docs audit",
+    "audit:docs": "pnpm --filter @issue-graph/docs run audit",
     "typecheck": "tsc --noEmit && tsc --noEmit -p apps/dashboard/tsconfig.json",
     "lint": "biome check src tests vitest.config.ts scripts/build.ts scripts/verify-package.ts scripts/release.ts scripts/release-notes.ts scripts/build-dashboard.ts apps/dashboard/src apps/dashboard/biome.json apps/dashboard/next.config.mjs",
     "lint:fix": "biome check --write src tests vitest.config.ts",

@@ -2,12 +2,12 @@
 title: Install the CLI and trace your first issue
 navTitle: Get started
 description: Install the edmundmiller fork from source, try a credentials-free Beads snapshot, configure live providers, and query a saved graph.
-lastModified: 2026-09-27
+lastModified: 2026-11-08
 ---
 
 ## Install this fork
 
-For **edmundmiller/issue-graph**, follow [the fork README's Start here](https://github.com/edmundmiller/issue-graph#start-here): clone that repository, build with pinned pnpm, pack it, and install the resulting tarball into a dedicated user prefix. Node.js 24 LTS is recommended. Do not use the npm installation below for Jira, Linear, Notion, or Beads: `issue-graph@latest` is upstream.
+For **edmundmiller/issue-graph**, follow [the fork README's Start here](https://github.com/edmundmiller/issue-graph#start-here): clone that repository, build with pinned pnpm, pack it, and install the resulting tarball into a dedicated user prefix. Node.js 24 LTS is recommended. `issue-graph@latest` is the upstream npm package, not this fork. Keep the fork executable on your PATH for all examples below.
 
 Verify `issue-graph schema` lists `commands.open.workProviders.providers` with all four providers, then read `issue-graph skills get core --full`. The README includes a credentials-free Beads example and exact environment/scope configuration for live providers. GitHub alone requires `gh`. Importing tracked Beads JSONL requires neither credentials nor br/bd; native unclosed statuses do not imply readiness, and exports can lag database-backed changes.
 
@@ -15,24 +15,20 @@ Verify `issue-graph schema` lists `commands.open.workProviders.providers` with a
 
 - Node.js 20 or later
 - [GitHub CLI](https://cli.github.com) on your `PATH` for GitHub collection only
-- authorized scope/credentials for the live provider you want to query; none for Beads JSONL
+- Authorized scope/credentials for the live provider you want to query; none for Beads JSONL
 
-## Install upstream from npm (not this fork)
+## Try a credentials-free snapshot
 
-```bash
-npm install --global issue-graph@latest
-issue-graph --help
-```
-
-To try the [npm package](https://www.npmjs.com/package/issue-graph) without a global installation:
+From the cloned checkout, import the bundled Beads fixture into an isolated local store:
 
 ```bash
-npx issue-graph@latest --help
+ISSUE_GRAPH_HOME="$PWD/.fork-demo" issue-graph open beads:demo --input examples/beads/issues.jsonl --state all
+ISSUE_GRAPH_HOME="$PWD/.fork-demo" issue-graph query beads:demo --view explore --json --no-open
 ```
 
-You can replace `issue-graph` with `npx issue-graph@latest` in any CLI example.
+The capture contains three records with native `blocked`, `in_progress`, and `open` statuses and two directed dependencies. The query returns the exact local `viewUrl`. This confirms fixture import and offline rendering, not live access or tracker readiness. See [Dashboard and saved queries](/docs/dashboard) for capabilities and storage.
 
-These docs track repository `main`, which can be ahead of the published package. Check `issue-graph --help` for commands supported by your installed release. If a command is missing, use a release that includes it or follow the source setup below.
+Run `issue-graph --help` to see the commands supported by your installed release. If a command is missing, check that your PATH selects the fork and follow [Update](#update).
 
 ## Authenticate GitHub
 
@@ -41,7 +37,7 @@ gh auth login
 issue-graph auth status
 ```
 
-issue-graph uses your GitHub CLI credentials. `auth status` reports sign-in state without displaying tokens; use `gh auth status` for GitHub CLI diagnostics. For private repositories, your account needs access and any SSO authorization required by the organization.
+issue-graph uses your GitHub CLI credentials. `issue-graph auth status` reports sign-in state without printing tokens. For GitHub CLI diagnostics, run `gh auth status`. To query a private repository, your account needs access to it and any SSO authorization the organization requires.
 
 ## Trace an issue
 
@@ -51,13 +47,13 @@ Start with [agent-browser issue #1113](https://github.com/vercel-labs/agent-brow
 issue-graph graph vercel-labs/agent-browser#1113 --depth 1 --budget 12 --no-save
 ```
 
-You can also pass its URL:
+You can also pass the issue URL:
 
 ```bash
 issue-graph graph https://github.com/vercel-labs/agent-browser/issues/1113 --depth 1 --budget 12 --no-save
 ```
 
-The command prints a report: formatted in a terminal, Markdown when piped. This example, captured on 2026-09-22, found a merged fix and two open follow-ups:
+The command prints a formatted report in a terminal and Markdown when piped. This example, captured on 2026-09-22, found a merged fix and two open follow-ups:
 
 | Issue or PR | Captured state | Description |
 | --- | --- | --- |
@@ -67,48 +63,60 @@ The command prints a report: formatted in a terminal, Markdown when piped. This 
 | [Issue #1371](https://github.com/vercel-labs/agent-browser/issues/1371) | OPEN | Chrome Helper using high CPU |
 | [Issue #1607](https://github.com/vercel-labs/agent-browser/issues/1607) | OPEN | GUI Chrome launch problem on macOS |
 
-Each run queries GitHub, so your results may differ. The flags limit this run to depth 1 and 12 fetched nodes, and disable saving a new snapshot. Check the report's missing references and limits before acting. See [Graph](/docs/graph) for the capture details and crawl limits.
+Each run queries GitHub, so your results may differ. The flags limit the crawl to depth 1 and 12 fetched nodes, and `--no-save` skips saving a new snapshot. Before you act on the report, check its missing references and limits. See [Graph](/docs/graph) for the capture details and crawl limits.
 
 ## Save an explorer
 
-Add `-o` with a `.json` or `.html` path to save the results:
+To save the results, add `-o` with a `.json` or `.html` path:
 
 ```bash
 issue-graph graph vercel-labs/agent-browser#1113 --depth 1 --budget 12 --no-save -o graph.json -o graph.html
 ```
 
-Open `graph.html` in your browser. Keep its sibling `_next/` directory and `font-LICENSE.txt` when moving it. Export paths write files even with `--no-save`; choose new filenames if you want to keep earlier results.
+Open `graph.html` in your browser. If you move it, move its sibling `_next/` directory and `font-LICENSE.txt` with it. Export paths write files even with `--no-save` and replace existing files, so choose new filenames to keep earlier results.
 
-For CLI filters and an exact dashboard link, save a model first:
+To filter results from the CLI and get an exact dashboard link, save a model first:
 
 ```bash
 issue-graph open vercel-labs/agent-browser --no-open
 issue-graph query github:vercel-labs/agent-browser --state open --kind Issue --view rank --json --open
 ```
 
-The first command collects data within its crawl budget. The second uses saved data offline and returns `viewUrl`; it does not refresh GitHub. See [Dashboard and saved queries](/docs/dashboard) for Heat, clusters, replay, and scoring defaults.
+The first command collects data from GitHub within its crawl budget. The second reads the saved data offline, makes no GitHub requests, and returns a `viewUrl` for the matching dashboard view. See [Dashboard and saved queries](/docs/dashboard) for Heat, clusters, replay, and scoring defaults.
+
+## Connect another provider
+
+For native Linear graphs, authorize a read-only browser session, then capture an issue or a project:
+
+```bash
+issue-graph linear login
+issue-graph linear ENG-123 --workspace your-workspace --open
+issue-graph linear --project 12345678-1234-1234-1234-123456789abc --open
+```
+
+Replace the sample workspace, identifier, and project UUID with your own. Native Linear also accepts `LINEAR_API_KEY` or `LINEAR_ACCESS_TOKEN`; see [Linear](/docs/linear). The legacy `open linear:PROJECT_UUID` inventory still requires an environment token and does not use the login session.
+
+For Jira, Notion, and Beads, use provider-qualified `open` commands. Read `issue-graph open jira:PROJECT --help` or the equivalent help for your scope, then follow the [fork README's provider setup](https://github.com/edmundmiller/issue-graph#work-providers-in-this-fork). Keep credentials in your authorized environment or secret manager, never in command arguments or chat.
 
 ## Update
 
-```bash
-npm install --global issue-graph@latest
-```
+From your clean fork checkout, follow [Update the fork installation](https://github.com/edmundmiller/issue-graph#update-the-fork-installation): pull the reviewed fork changes, install locked dependencies, pack the source, and reinstall that tarball into the dedicated prefix. Use the filename printed by `pack` when the version changes.
 
-Use `issue-graph --help` to check the commands supported by your installed release.
+After updating, run `issue-graph schema` and verify `commands.open.workProviders.providers`. Updating from the npm registry would replace this fork with upstream.
 
 ## Troubleshooting
 
-If the command is missing, check your npm global installation and `PATH`, or use npx. For GitHub access errors, run `gh auth status` and check repository permissions and SSO authorization.
+If your shell cannot find `issue-graph`, put `$HOME/.local/issue-graph-fork/bin` on your PATH or use the full executable path. Run `command -v issue-graph` to confirm that your shell selects the fork. For GitHub access errors, run `gh auth status` and check your repository permissions and SSO authorization. See [Troubleshooting](/docs/troubleshooting) for Linear authentication and partial captures.
 
 ## Optional source development
 
-Build from source using pnpm and Node.js 20.19.x or 22.12+. Node.js 24 is recommended.
+To build from source, use pnpm and Node.js 20.19.x or 22.12 and later. Node.js 24 is recommended.
 
 ```bash
 git clone https://github.com/edmundmiller/issue-graph.git
 cd issue-graph
-pnpm install --frozen-lockfile
-pnpm build
+npm exec --yes --package=pnpm@10.34.5 -- pnpm install --frozen-lockfile
+npm exec --yes --package=pnpm@10.34.5 -- pnpm build
 node dist/bin.js --help
 ```
 

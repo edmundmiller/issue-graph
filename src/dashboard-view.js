@@ -680,7 +680,7 @@ export function mountDashboardView(
     return [...groups.values()];
   }
   function colorAttrs(color) {
-    return color.startsWith("hsl(")
+    return color.startsWith("var(")
       ? 'class="c-group" style="--group-color:' + color + '"'
       : 'class="c-' + color + '"';
   }
@@ -732,7 +732,14 @@ export function mountDashboardView(
       )
       .join("");
   }
+  // Geist hue scales at the 700 then 900 step; past those, golden-angle hues keep every cluster distinct.
+  const GROUP_HUES = ["blue", "amber", "purple", "green", "pink", "teal", "red"];
   function groupColor(index) {
+    if (index < GROUP_HUES.length * 2) {
+      const hue = GROUP_HUES[index % GROUP_HUES.length];
+      const step = index < GROUP_HUES.length ? 700 : 900;
+      return "var(--ds-" + hue + "-" + step + ")";
+    }
     return "hsl(" + ((216 + index * 137.508) % 360).toFixed(3) + " 62% 55%)";
   }
   function proposedGroups() {
@@ -796,7 +803,9 @@ export function mountDashboardView(
           " open issues" +
           (c.pullRequests === undefined ? "" : " + " + c.pullRequests + " open PRs") +
           " · " +
-          (c.complete ? "entire project" : "partial count") +
+          (c.complete
+            ? "entire project"
+            : "partial count" + (c.reason ? " (" + c.reason + ")" : "")) +
           " · " +
           c.observedAt;
       return '<b title="' + esc(detail) + '" aria-label="' + esc(detail) + '">' + text + "</b>";
@@ -1336,7 +1345,21 @@ export function mountDashboardView(
             esc(a.url) +
             '" target="_blank" rel="noopener">' +
             esc(a.title || a.url) +
-            "</a></div>",
+            "</a>" +
+            (a.github
+              ? ' <span class="badge ' +
+                (a.github.error ? "b-warn" : "b-muted") +
+                '">' +
+                esc(
+                  a.github.error
+                    ? "unavailable"
+                    : (a.github.kind === "pull-request" ? "PR " : "issue ") +
+                        String(a.github.state).toLowerCase() +
+                        (a.github.draft ? ", draft" : ""),
+                ) +
+                "</span>"
+              : "") +
+            "</div>",
         )
       : n.external.map(
           (u) =>
