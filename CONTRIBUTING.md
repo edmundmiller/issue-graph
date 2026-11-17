@@ -34,6 +34,26 @@ Both options are required for an existing archive. Verification checks identity,
 
 Add or update tests for behavior changes. Keep filesystem and subprocess dependencies out of the runtime-agnostic core entry point.
 
+### Supplementary anti-slop checks
+
+Source tooling requires Node.js 22.18 or later; Node.js 24 is recommended. This does not change the packaged CLI's Node.js 20 runtime target. Biome 2.5.3 still owns formatting and the existing root and docs checks. The original `lint`, `check`, and docs scripts remain unchanged. `pnpm lint:oxlint` runs supplementary Fowler AST warnings; the default Oxlint config used by editors never imports the model-backed plugin. `pnpm lint:strict` selects the complete proposed Core error suite and Fowler warnings. Edmund approved this staged activation split: preserve existing gates and severities, keep Fowler advisories in the default Oxlint config, and keep the conflicting Core suite in the explicit proposal command. This approval does not grant permanent exemptions, source migrations, full strict acceptance, or publication. These deterministic commands need no model, credentials, paid calls, or network.
+
+Run `pnpm test:lint` for the vendored Core/Fowler rule suites, local configuration and changed-file regressions, and mocked diff-runner tests. Run `pnpm typecheck:lint` to typecheck the vendored source and configs separately from the application's existing typechecks. A new-rule failure in existing application code is a rollout finding, not permission to suppress the rule, weaken Biome, or refactor unrelated code.
+
+The semantic review commands are separate opt-ins. Do not run them without approval to disclose source and potentially incur model charges:
+
+| Command | Scope |
+| --- | --- |
+| `pnpm lint:jev` | Staged, unstaged, and untracked JS/TS files in the working tree |
+| `pnpm lint:jev:full` | All non-ignored source files, without changed-function filtering |
+| `pnpm lint:diff --working` | The uncommitted change set, including hunks, context, and history |
+
+The changed-file runner excludes unchanged files and limits paths to its working directory when invoked from a nested package. In changed files, function-target Jev questions receive the complete changed function, while file-target questions can receive the entire file, including untouched functions, up to the snippet limit. This is not changed-lines-only disclosure. `JEV_CHANGED_ONLY=0` overrides function filtering even in the changed-file command; `JEV_CHANGED_BASE` changes the plugin's comparison base but does not make the file runner include committed branch changes. Use a separate reviewed file selection for committed-only review. Diff review also sends file summaries and commit/co-change history; it does not use the Jev file/function filter. Inspect `anti-slop-diff-rules.config.ts` exclusions before running it.
+
+The Jev overlay enables Fowler questions at `warn`, disables them for tests, and retains upstream CI failure on missing credentials. Effect is not a direct workspace dependency, so neither Effect rules nor Effect compiler diagnostics are activated. No semantic command is wired into CI, hooks, or standard checks. Missing credentials can cause an opt-in local run to skip review; exit 0 alone does not prove that a model reviewed anything. Configure credentials outside the repository only after approval; never paste keys into issues, logs, or agent conversations. The pinned Jev package supplies its SDK dependencies. Direct SDK development dependencies also typecheck the vendored optional diff backends; their presence does not authorize calling them.
+
+Provenance and the reviewed update boundary are recorded in `tools/oxlint/anti-slop/UPSTREAM.md`. Keep Core at `error`, Fowler AST at `warn` with `message-chains` off, and any future local rules, options, tests, and severities when merging upstream updates. Preserve both MIT licenses and the nested ESLint Stylistic provenance alongside the fork's Apache-2.0 source. Keep `oxlint` and `@oxlint/plugins` at the same exact compatible version. Do not run an installer with `--force` over local policy.
+
 For transport changes, compare both implementations against a live public repository:
 
 ```bash

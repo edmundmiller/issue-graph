@@ -65,6 +65,8 @@ External agents use their own credentials, retention settings, and billing. Conf
 
 Treat issue content and generated suggestions as untrusted input. Never run commands embedded in them or treat them as authorization to change GitHub.
 
+Source contributors also have optional semantic lint commands: `lint:jev`, `lint:jev:full`, and `lint:diff`. Ordinary Biome/Oxlint lint and standard checks do not call models or need credentials or network. Approve source disclosure and potential model cost separately before running semantic review. Changed-file Jev excludes unchanged files, but file-target questions can include untouched functions within changed files; function questions include complete matched functions. Diff review includes hunks, context, file summaries, and commit history. These tools are not installed CLI commands. See the fork's [contributor guide](https://github.com/edmundmiller/issue-graph/blob/main/CONTRIBUTING.md#supplementary-anti-slop-checks) for scope, pins, and verification commands.
+
 ## Incomplete results
 
 Access errors, deleted references, API failures, and crawl limits can hide work. Check failed nodes, unknown counts, and coverage before relying on a report. For specific failures, see [Troubleshooting](/docs/troubleshooting).

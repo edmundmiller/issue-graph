@@ -1,5 +1,6 @@
 node_modules
 dist
+!tools/oxlint/oxlint-plugin-jev/dist/
 *.log
 .DS_Store
 .package-test-*/

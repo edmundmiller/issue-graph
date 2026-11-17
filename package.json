@@ -43,7 +43,14 @@
     "test:docs:routes": "pnpm --filter @issue-graph/docs test:routes",
     "audit:docs": "pnpm --filter @issue-graph/docs run audit",
     "typecheck": "tsc --noEmit && tsc --noEmit -p apps/dashboard/tsconfig.json",
+    "typecheck:lint": "tsc --noEmit -p tools/oxlint/tsconfig.json",
     "lint": "biome check src tests vitest.config.ts scripts/build.ts scripts/verify-package.ts scripts/release.ts scripts/release-notes.ts scripts/build-dashboard.ts apps/dashboard/src apps/dashboard/biome.json apps/dashboard/next.config.mjs",
+    "lint:oxlint": "oxlint src tests scripts apps/dashboard/src apps/docs/src apps/docs/scripts",
+    "lint:strict": "oxlint -c oxlint.strict.config.ts src tests scripts apps/dashboard/src apps/docs/src apps/docs/scripts",
+    "lint:jev": "node tools/oxlint/anti-slop/jev/lint-changed.ts -c oxlint.jev.config.ts",
+    "lint:jev:full": "node tools/oxlint/anti-slop/jev/lint-changed.ts --all -c oxlint.jev.config.ts",
+    "lint:diff": "node tools/oxlint/anti-slop/diff-rules/run.ts",
+    "test:lint": "node --test tools/oxlint/*.test.mjs tools/oxlint/anti-slop/rules/*.test.ts tools/oxlint/anti-slop/martinfowler/rules/*.test.ts tools/oxlint/anti-slop/martinfowler/jev-rules.test.ts tools/oxlint/anti-slop/diff-rules/git.test.ts tools/oxlint/anti-slop/diff-rules/input.test.ts tools/oxlint/anti-slop/diff-rules/runner.test.ts",
     "lint:fix": "biome check --write src tests vitest.config.ts",
     "format": "biome format --write src tests vitest.config.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
@@ -83,12 +90,20 @@
     "url": "https://github.com/edmundmiller/issue-graph/issues"
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "4.0.105",
+    "@ai-sdk/openai-compatible": "3.0.92",
+    "@ai-sdk/typesafe-ai": "3.0.40",
     "@biomejs/biome": "2.5.3",
+    "@oxlint/plugins": "1.93.0",
     "@types/node": "^26.1.1",
+    "ai": "7.0.173",
+    "oxlint": "1.93.0",
+    "oxlint-plugin-jev": "file:tools/oxlint/oxlint-plugin-jev",
     "tsx": "4.23.13",
     "typescript": "^5.9.3",
     "vite": "7.3.6",
     "vitest": "4.1.11",
-    "yaml": "2.9.1"
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
   }
 }

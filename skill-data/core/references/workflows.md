@@ -26,6 +26,8 @@ loading use packaged assets without network or `gh` access. If a command is miss
 report the CLI/skill mismatch; do not fabricate guidance or automatically install,
 build, link, or upgrade anything. Setup needs separate authorization.
 
+In a source checkout, contributor scripts `lint:jev`, `lint:jev:full`, and `lint:diff` require separate approval for source disclosure and possible model charges. Normal lint and checks do not use models, credentials, or network. Changed-file Jev skips unchanged files, but file-target questions can include untouched functions within changed files, and function-target questions include complete matched functions. It is not changed-lines-only disclosure. The full Jev command removes function filtering; diff review sends hunks, context, file summaries, and commit/co-change history. These scripts are not installed `issue-graph` commands. Read `CONTRIBUTING.md` in this fork before configuring or invoking them.
+
 Graph and plan default to compact human text in a terminal. Graph pipes remain
 Markdown; plan pipes remain JSON. `--format human` selects human output outside a
 terminal without ANSI; `--format markdown` selects Markdown. Human output uses
